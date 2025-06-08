@@ -52,10 +52,16 @@ class GemmaService {
         _statusController.add(ModelStatus.loading);
         debugPrint('🏗️ Creating inference model...');
 
-        // Create the inference model with CORRECT API parameters
+        // Create the inference model with platform-optimized backend
+        final preferredBackend = Platform.isAndroid 
+            ? PreferredBackend.cpu  // Android: Use CPU for stability
+            : PreferredBackend.gpu; // iOS: Use GPU for performance
+        
+        debugPrint('🔧 Using ${Platform.isAndroid ? "CPU" : "GPU"} backend for ${Platform.isAndroid ? "Android" : "iOS"}');
+        
         _inferenceModel = await gemma.createModel(
           modelType: ModelType.gemmaIt,
-          preferredBackend: PreferredBackend.gpu,
+          preferredBackend: preferredBackend,
           maxTokens: 1024,
         );
 
