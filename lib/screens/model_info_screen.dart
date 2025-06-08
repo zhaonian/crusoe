@@ -3,8 +3,10 @@ import '../services/gemma_service.dart';
 import '../services/model_downloader.dart';
 
 class ModelInfoScreen extends StatefulWidget {
+  const ModelInfoScreen({super.key});
+
   @override
-  _ModelInfoScreenState createState() => _ModelInfoScreenState();
+  State<ModelInfoScreen> createState() => _ModelInfoScreenState();
 }
 
 class _ModelInfoScreenState extends State<ModelInfoScreen> {
@@ -91,7 +93,9 @@ class _ModelInfoScreenState extends State<ModelInfoScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete Model'),
-        content: Text('Are you sure you want to delete the downloaded model? This will free up 529MB of storage.'),
+        content: Text(
+          'Are you sure you want to delete the downloaded model? This will free up 529MB of storage.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -123,9 +127,7 @@ class _ModelInfoScreenState extends State<ModelInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Model Information'),
-      ),
+      appBar: AppBar(title: Text('Model Information')),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
@@ -176,8 +178,12 @@ class _ModelInfoScreenState extends State<ModelInfoScreen> {
                     Row(
                       children: [
                         Icon(
-                          _localModelPath != null ? Icons.check_circle : Icons.cloud_download,
-                          color: _localModelPath != null ? Colors.green : Colors.grey,
+                          _localModelPath != null
+                              ? Icons.check_circle
+                              : Icons.cloud_download,
+                          color: _localModelPath != null
+                              ? Colors.green
+                              : Colors.grey,
                         ),
                         SizedBox(width: 8),
                         Expanded(
@@ -186,7 +192,9 @@ class _ModelInfoScreenState extends State<ModelInfoScreen> {
                                 ? 'Model downloaded and ready'
                                 : 'Model not downloaded',
                             style: TextStyle(
-                              color: _localModelPath != null ? Colors.green : Colors.grey,
+                              color: _localModelPath != null
+                                  ? Colors.green
+                                  : Colors.grey,
                             ),
                           ),
                         ),
@@ -243,16 +251,11 @@ class _ModelInfoScreenState extends State<ModelInfoScreen> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(
-              label,
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
+            child: Text(label, style: TextStyle(fontWeight: FontWeight.w500)),
           ),
-          Expanded(
-            child: Text(value),
-          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );
   }
-} 
+}

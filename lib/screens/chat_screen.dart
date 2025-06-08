@@ -20,7 +20,7 @@ class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
@@ -53,12 +53,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     Future.delayed(Duration(milliseconds: 1000), () {
       if (mounted) {
         setState(() {
-          String welcomeMessage = "👋 Hello! I'm your offline AI assistant powered by Gemma. How can I help you today?";
-          
+          String welcomeMessage =
+              "👋 Hello! I'm your offline AI assistant powered by Gemma. How can I help you today?";
+
           if (_gemmaService.isSimulationMode) {
-            welcomeMessage = "👋 Hello! I'm running in simulation mode while the Gemma model is being set up. I can still chat with you! How can I help you today?";
+            welcomeMessage =
+                "👋 Hello! I'm running in simulation mode while the Gemma model is being set up. I can still chat with you! How can I help you today?";
           }
-          
+
           _messages.add(
             ChatMessage(
               text: welcomeMessage,
@@ -78,7 +80,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         _isModelLoaded = status.isOperational;
         _isGenerating = status == ModelStatus.generating;
       });
-      
+
       // Update welcome message when status changes to ready
       if (status == ModelStatus.ready && _messages.length == 1) {
         setState(() {
@@ -145,7 +147,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     try {
       debugPrint('🔄 Calling gemmaService.generateResponse...');
       final response = await _gemmaService.generateResponse(prompt);
-      debugPrint('✅ Received response from service: "${response.substring(0, response.length.clamp(0, 100))}${response.length > 100 ? "..." : ""}"');
+      debugPrint(
+        '✅ Received response from service: "${response.substring(0, response.length.clamp(0, 100))}${response.length > 100 ? "..." : ""}"',
+      );
       debugPrint('📏 Response length in UI: ${response.length} characters');
 
       setState(() {
@@ -196,7 +200,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   Widget _buildMessage(ChatMessage message, int index) {
     final isUser = message.isUser;
-    final isLast = index == _messages.length - 1;
 
     return Container(
       margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
@@ -359,7 +362,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               children: [
                 Text("Offline AI Chat", style: TextStyle(fontSize: 18)),
                 Text(
-                  _currentStatus.getMessageWithContext(_gemmaService.isSimulationMode),
+                  _currentStatus.getMessageWithContext(
+                    _gemmaService.isSimulationMode,
+                  ),
                   style: TextStyle(fontSize: 12, color: Colors.grey[300]),
                 ),
               ],
@@ -425,7 +430,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                   SizedBox(width: 12),
-                  Text(_currentStatus.getMessageWithContext(_gemmaService.isSimulationMode)),
+                  Text(
+                    _currentStatus.getMessageWithContext(
+                      _gemmaService.isSimulationMode,
+                    ),
+                  ),
                 ],
               ),
             ),
