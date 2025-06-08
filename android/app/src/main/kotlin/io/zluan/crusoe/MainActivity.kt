@@ -1,4 +1,4 @@
-package com.example.crusoe
+package io.zluan.crusoe
 
 import io.flutter.embedding.android.FlutterActivity
 
