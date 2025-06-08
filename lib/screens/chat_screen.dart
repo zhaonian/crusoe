@@ -49,15 +49,25 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _addWelcomeMessage() {
-    setState(() {
-      _messages.add(
-        ChatMessage(
-          text:
-              "👋 Hello! I'm your offline AI assistant powered by Gemma. How can I help you today?",
-          isUser: false,
-          timestamp: DateTime.now(),
-        ),
-      );
+    // Wait a moment to check if we're in simulation mode
+    Future.delayed(Duration(milliseconds: 1000), () {
+      if (mounted) {
+        setState(() {
+          String welcomeMessage = "👋 Hello! I'm your offline AI assistant powered by Gemma. How can I help you today?";
+          
+          if (_gemmaService.isSimulationMode) {
+            welcomeMessage = "👋 Hello! I'm running in simulation mode while the Gemma model is being set up. I can still chat with you! How can I help you today?";
+          }
+          
+          _messages.add(
+            ChatMessage(
+              text: welcomeMessage,
+              isUser: false,
+              timestamp: DateTime.now(),
+            ),
+          );
+        });
+      }
     });
   }
 
@@ -68,6 +78,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         _isModelLoaded = status.isOperational;
         _isGenerating = status == ModelStatus.generating;
       });
+      
+      // Update welcome message when status changes to ready
+      if (status == ModelStatus.ready && _messages.length == 1) {
+        setState(() {
+          _messages.clear();
+        });
+        _addWelcomeMessage();
+      }
     });
   }
 
@@ -332,7 +350,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               children: [
                 Text("Offline AI Chat", style: TextStyle(fontSize: 18)),
                 Text(
-                  _currentStatus.message,
+                  _currentStatus.getMessageWithContext(_gemmaService.isSimulationMode),
                   style: TextStyle(fontSize: 12, color: Colors.grey[300]),
                 ),
               ],
@@ -398,7 +416,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                   SizedBox(width: 12),
-                  Text(_currentStatus.message),
+                  Text(_currentStatus.getMessageWithContext(_gemmaService.isSimulationMode)),
                 ],
               ),
             ),

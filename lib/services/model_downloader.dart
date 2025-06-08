@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -11,82 +12,111 @@ class ModelDownloader {
   static const String _modelFileName = 'gemma3-1b-it-int4.task';
   static const int _expectedModelSize = 529 * 1024 * 1024; // ~529MB
   
-  /// Download the Gemma model to device storage
-  /// NOTE: This demonstrates the download flow. Real integration would download from _modelUrl
+  /// Get the model path - prioritizes bundled asset, then downloads if needed
   static Future<String> downloadModel({
     required Function(double progress) onProgress,
     required Function(String status) onStatusUpdate,
   }) async {
     try {
-      onStatusUpdate('Preparing to download Gemma 3 1B model...');
+      onStatusUpdate('Checking for bundled Gemma model...');
       
-      // Get the application documents directory
-      final appDir = await getApplicationDocumentsDirectory();
-      final modelDir = Directory(path.join(appDir.path, 'models'));
-      
-      // Create models directory if it doesn't exist
-      if (!await modelDir.exists()) {
-        await modelDir.create(recursive: true);
+      // First, try to get the bundled model from assets
+      String? modelPath = await _getBundledModelPath(onProgress, onStatusUpdate);
+      if (modelPath != null) {
+        onStatusUpdate('Using bundled Gemma model');
+        onProgress(1.0);
+        return modelPath;
       }
       
-      final modelFile = File(path.join(modelDir.path, _modelFileName));
-      
-      // Check if model already exists and is valid
-      if (await modelFile.exists()) {
-        final fileSize = await modelFile.length();
-        if (fileSize > 100) { // Simple check for existing file
-          onStatusUpdate('Model already downloaded');
-          return modelFile.path;
-        }
-      }
-      
-      onStatusUpdate('Starting download simulation (529MB)...');
-      onStatusUpdate('Real integration would download from: $_modelUrl');
-      
-      // Simulate download progress (in real app, this would be actual HTTP download)
-      for (int i = 0; i <= 100; i += 5) {
-        await Future.delayed(Duration(milliseconds: 200));
-        final progress = i / 100.0;
-        onProgress(progress);
-        
-        final downloadedMB = (_expectedModelSize * progress) / (1024 * 1024);
-        final totalMB = _expectedModelSize / (1024 * 1024);
-        onStatusUpdate('Downloading: ${downloadedMB.toStringAsFixed(1)}MB / ${totalMB.toStringAsFixed(1)}MB');
-      }
-      
-      // Create a placeholder that represents the real model file
-      await modelFile.writeAsString('''
-This is a placeholder for the real Gemma 3 1B model.
-
-In a production app, this would be the actual .task file downloaded from:
-$_modelUrl
-
-File size: ${_expectedModelSize ~/ (1024 * 1024)}MB
-Model type: Gemma 3 1B Instruction Tuned (INT4 quantized)
-Ready for MediaPipe LiteRT integration!
-''');
-      
-      onStatusUpdate('Model downloaded successfully!');
-      debugPrint('📁 Model file created at: ${modelFile.path}');
-      return modelFile.path;
+      // Fall back to download logic (not implemented yet, would need real HTTP download)
+      onStatusUpdate('No bundled model found, download not implemented yet');
+      throw Exception('Real model download not implemented. Please include model in assets/models/');
       
     } catch (e) {
-      throw Exception('Failed to download model: $e');
+      throw Exception('Failed to get model: $e');
+    }
+  }
+  
+  /// Try to get bundled model path from assets
+  static Future<String?> _getBundledModelPath([
+    Function(double progress)? onProgress,
+    Function(String status)? onStatusUpdate,
+  ]) async {
+    try {
+      // Check if the model exists in assets
+      const assetPath = 'assets/models/gemma3-1b-it-int4.task';
+      
+      onStatusUpdate?.call('Checking for bundled model...');
+      
+      try {
+        // Try to load the asset to verify it exists
+        final assetData = await rootBundle.load(assetPath);
+        debugPrint('📁 Found bundled model, size: ${assetData.lengthInBytes} bytes');
+        
+        // Get documents directory for copying the model
+        final appDir = await getApplicationDocumentsDirectory();
+        final modelDir = Directory(path.join(appDir.path, 'models'));
+        
+        if (!await modelDir.exists()) {
+          await modelDir.create(recursive: true);
+        }
+        
+        final modelFile = File(path.join(modelDir.path, _modelFileName));
+        
+        // Check if we already have the model copied and it's the right size
+        if (await modelFile.exists()) {
+          final fileSize = await modelFile.length();
+          if (fileSize == assetData.lengthInBytes) {
+            debugPrint('📁 Using existing copied model at: ${modelFile.path}');
+            return modelFile.path;
+          } else {
+            debugPrint('📁 Model file size mismatch, re-copying...');
+          }
+        }
+        
+        // Copy the real asset to the file system
+        onStatusUpdate?.call('Copying bundled model to device storage...');
+        
+        // Simulate progress for the copy operation
+        if (onProgress != null) {
+          for (int i = 0; i <= 10; i++) {
+            await Future.delayed(Duration(milliseconds: 100));
+            onProgress(i / 10.0);
+          }
+        }
+        
+        await modelFile.writeAsBytes(assetData.buffer.asUint8List());
+        
+        // Verify the copied file
+        final copiedSize = await modelFile.length();
+        debugPrint('📁 Copied bundled model to: ${modelFile.path}');
+        debugPrint('📁 Original size: ${assetData.lengthInBytes}, Copied size: $copiedSize');
+        
+        if (copiedSize != assetData.lengthInBytes) {
+          throw Exception('Model copy verification failed: size mismatch');
+        }
+        
+        return modelFile.path;
+      } catch (assetError) {
+        debugPrint('❌ Asset not found or couldn\'t be loaded: $assetError');
+        return null;
+      }
+      
+    } catch (e) {
+      debugPrint('Error accessing bundled model: $e');
+      return null;
     }
   }
   
   /// Check if model exists locally
   static Future<String?> getLocalModelPath() async {
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final modelFile = File(path.join(appDir.path, 'models', _modelFileName));
-      
-      if (await modelFile.exists()) {
-        final fileSize = await modelFile.length();
-        if (fileSize > 100) { // Simple check for existing simulated file
-          return modelFile.path;
-        }
+      // First check for bundled model
+      String? bundledPath = await _getBundledModelPath();
+      if (bundledPath != null) {
+        return bundledPath;
       }
+      
       return null;
     } catch (e) {
       debugPrint('Error checking local model: $e');
@@ -102,6 +132,7 @@ Ready for MediaPipe LiteRT integration!
       
       if (await modelFile.exists()) {
         await modelFile.delete();
+        debugPrint('🗑️ Deleted local model file');
       }
     } catch (e) {
       debugPrint('Error deleting local model: $e');

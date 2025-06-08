@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-// flutter_gemma types will be imported when needed for real implementation
+import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:flutter_gemma/core/model.dart';
+import 'package:flutter_gemma/pigeon.g.dart';
 import 'model_downloader.dart';
 
 /// Service class for handling Gemma model operations
@@ -12,9 +14,9 @@ class GemmaService {
 
   bool _isInitialized = false;
   bool _isLoading = false;
+  bool _isSimulationMode = false; // Track if we're in fallback mode
   String? _modelPath;
-  // InferenceModel will be used when real integration is enabled
-  dynamic _inferenceModel;
+  InferenceModel? _inferenceModel;
 
   /// Stream controller for model loading status
   final StreamController<ModelStatus> _statusController = StreamController<ModelStatus>.broadcast();
@@ -29,59 +31,62 @@ class GemmaService {
     _statusController.add(ModelStatus.loading);
 
     try {
-      String? finalModelPath = modelPath;
+      // Try to initialize flutter_gemma using the new API
+      debugPrint('🤖 Attempting to load real Gemma model using new API...');
       
-      // If no model path provided, check for local model or download
-      if (finalModelPath == null) {
-        // Check if model exists locally
-        finalModelPath = await ModelDownloader.getLocalModelPath();
+      try {
+        final gemma = FlutterGemmaPlugin.instance;
+        final modelManager = gemma.modelManager;
         
-        // If not found locally, download it
-        if (finalModelPath == null) {
-          _statusController.add(ModelStatus.downloading);
-          finalModelPath = await ModelDownloader.downloadModel(
-            onProgress: (progress) {
-              // Optionally emit progress updates
-              debugPrint('Download progress: ${(progress * 100).toStringAsFixed(1)}%');
-            },
-            onStatusUpdate: (status) {
-              debugPrint('Download status: $status');
-            },
-          );
-        }
+        // Install model from assets using the new API
+        _statusController.add(ModelStatus.downloading);
+        debugPrint('📦 Installing model from assets...');
+        
+        await modelManager.installModelFromAsset('models/gemma3-1b-it-int4.task');
+        
+        _statusController.add(ModelStatus.loading);
+        debugPrint('🏗️ Creating inference model...');
+        
+        // Create the inference model with CORRECT API parameters
+        _inferenceModel = await gemma.createModel(
+          modelType: ModelType.gemmaIt,
+          preferredBackend: PreferredBackend.gpu,
+          maxTokens: 1024,
+        );
+        
+        debugPrint('✅ Real Gemma model loaded successfully with new API');
+        _isSimulationMode = false;
+      } catch (modelError) {
+        debugPrint('⚠️ Real model failed to load: $modelError');
+        debugPrint('🔄 Falling back to simulation mode...');
+        _isSimulationMode = true;
+        _inferenceModel = null;
       }
       
-      _statusController.add(ModelStatus.loading);
-      
-      // In demo mode, we simulate model setup
-      // Real integration would use flutter_gemma here:
-      //
-      // import 'package:flutter_gemma/flutter_gemma.dart';
-      // final gemma = FlutterGemmaPlugin.instance;
-      // final modelManager = gemma.modelManager;
-      // await modelManager.setModelPath(finalModelPath);
-      // _inferenceModel = await gemma.createModel(
-      //   modelType: ModelType.gemmaIt,
-      //   preferredBackend: BackendType.gpu,
-      //   maxTokens: 1024,
-      // );
-      
-      debugPrint('🤖 Setting up model from: $finalModelPath');
-      await Future.delayed(Duration(seconds: 2)); // Simulate setup time
-      debugPrint('✅ Gemma model setup completed (simulation mode)');
-      
-      _modelPath = finalModelPath;
       _isInitialized = true;
       _isLoading = false;
       
       _statusController.add(ModelStatus.ready);
-      debugPrint('✅ Gemma model initialized successfully at: $finalModelPath');
+      
+      if (_isSimulationMode) {
+        debugPrint('✅ Gemma service initialized in simulation mode');
+      } else {
+        debugPrint('✅ Gemma model initialized successfully with new API');
+      }
+      
       return true;
     } catch (e) {
       _isLoading = false;
-      _statusController.add(ModelStatus.error);
-      debugPrint('❌ Failed to initialize Gemma model: $e');
-      return false;
+      
+      // Even if everything fails, fall back to simulation mode
+      debugPrint('❌ Complete initialization failure: $e');
+      debugPrint('🔄 Enabling simulation mode as final fallback...');
+      
+      _isSimulationMode = true;
+      _isInitialized = true;
+      _statusController.add(ModelStatus.ready);
+      
+      return true; // Return true because we can still work in simulation mode
     }
   }
 
@@ -91,62 +96,82 @@ class GemmaService {
       throw Exception('Model not initialized. Call initialize() first.');
     }
 
+    debugPrint('🔍 generateResponse called with prompt: "${prompt.substring(0, prompt.length.clamp(0, 50))}${prompt.length > 50 ? "..." : ""}"');
+
     try {
       _statusController.add(ModelStatus.generating);
 
-      // NOTE: In this demo, we use simulation since we don't have the real 529MB model
-      // In production, this would use the real Gemma model with the code below:
-      
-      // if (_inferenceModel == null) {
-      //   throw Exception('Inference model not initialized');
-      // }
-      // 
-      // final chat = await _inferenceModel!.createChat(
-      //   temperature: 0.8,
-      //   randomSeed: 42,
-      //   topK: 40,
-      // );
-      // 
-      // await chat.addQueryChunk(Message(text: prompt));
-      // final response = await chat.generateChatResponse();
-      
-      // For demo purposes, fall back to simulation
-      await Future.delayed(Duration(seconds: 1));
-      final response = _generateSimulatedResponse(prompt);
-      
-      debugPrint('🤖 Demo response generated: ${response.substring(0, response.length.clamp(0, 50))}...');
-      
-      _statusController.add(ModelStatus.ready);
-      return response.trim();
+      // If we have a real model, use it
+      if (!_isSimulationMode && _inferenceModel != null) {
+        debugPrint('🤖 Using real model for response generation...');
+        
+        // Create a chat session using the new API
+        final chat = await _inferenceModel!.createChat(
+          temperature: 0.8,
+          randomSeed: 42,
+          topK: 40,
+        );
+        
+        debugPrint('💬 Chat session created, adding query chunk...');
+        
+        // Add the user's query using the new Message API
+        await chat.addQueryChunk(Message(text: prompt, isUser: true));
+        
+        debugPrint('✏️ Query chunk added, generating response...');
+        
+        // Generate the response
+        final response = await chat.generateChatResponse();
+        
+        debugPrint('🤖 Real model response generated: "${response.substring(0, response.length.clamp(0, 100))}${response.length > 100 ? "..." : ""}"');
+        debugPrint('📏 Response length: ${response.length} characters');
+        
+        _statusController.add(ModelStatus.ready);
+        
+        final trimmedResponse = response.trim();
+        debugPrint('📋 Final trimmed response length: ${trimmedResponse.length} characters');
+        
+        return trimmedResponse;
+      } else {
+        // Use simulation mode
+        debugPrint('🎭 Using simulation mode for response...');
+        await Future.delayed(Duration(milliseconds: 500 + (prompt.length * 10))); // Simulate processing time
+        final response = _generateSimulatedResponse(prompt);
+        
+        debugPrint('🎭 Simulation response generated: "$response"');
+        _statusController.add(ModelStatus.ready);
+        return response;
+      }
     } catch (e) {
-      _statusController.add(ModelStatus.error);
-      debugPrint('❌ Failed to generate response: $e');
+      debugPrint('❌ Generation error: $e, falling back to simulation');
       
-      // Fallback to simulated response if real model fails
+      // Always fall back to simulation if anything fails
+      await Future.delayed(Duration(milliseconds: 300));
       final fallbackResponse = _generateSimulatedResponse(prompt);
       _statusController.add(ModelStatus.ready);
-      return "⚠️ Fallback mode: $fallbackResponse";
+      return "🎭 Simulation mode: $fallbackResponse";
     }
   }
 
-  /// Generate a simulated response (replace this with actual Gemma inference)
+  /// Generate a simulated response (fallback only)
   String _generateSimulatedResponse(String prompt) {
     final lowerPrompt = prompt.toLowerCase();
     
     if (lowerPrompt.contains('hello') || lowerPrompt.contains('hi')) {
-      return "Hello! I'm your offline AI assistant. How can I help you today?";
+      return "Hello! I'm your offline AI assistant running in simulation mode. How can I help you today?";
     } else if (lowerPrompt.contains('weather')) {
-      return "I'm running offline, so I can't check current weather. But I can help you with other questions!";
+      return "I'm running offline in simulation mode, so I can't check current weather. But I can help you with other questions!";
     } else if (lowerPrompt.contains('what') && lowerPrompt.contains('you')) {
-      return "I'm Gemma, a large language model running locally on your device. I can help with various tasks like answering questions, writing, and conversations - all while keeping your data private!";
+      return "I'm Gemma running in simulation mode on your device. While the real model is being prepared, I can still help with various tasks like answering questions and conversations!";
     } else if (lowerPrompt.contains('code') || lowerPrompt.contains('program')) {
       return "I can help you with coding questions! What programming language or concept would you like assistance with?";
     } else if (lowerPrompt.contains('joke')) {
-      return "Why don't scientists trust atoms? Because they make up everything! 😄";
+      return "Why don't scientists trust atoms? Because they make up everything! 😄 (This is from simulation mode!)";
     } else if (lowerPrompt.contains('explain')) {
       return "I'd be happy to explain that topic. Could you be more specific about what you'd like me to explain?";
+    } else if (lowerPrompt.contains('model') || lowerPrompt.contains('simulation')) {
+      return "I'm currently running in simulation mode because the real Gemma model couldn't be loaded. This allows you to test the chat interface while the model setup is being worked on!";
     } else {
-      return "That's an interesting question! While I'm running in simulation mode right now, the real Gemma model would provide you with a thoughtful response based on its training. What else would you like to know?";
+      return "That's an interesting question! I'm running in simulation mode to provide you with responses while the real AI model is being set up. What else would you like to know?";
     }
   }
 
@@ -156,13 +181,16 @@ class GemmaService {
   /// Check if the model is currently loading
   bool get isLoading => _isLoading;
 
+  /// Check if running in simulation mode
+  bool get isSimulationMode => _isSimulationMode;
+
   /// Get current model path
   String? get modelPath => _modelPath;
 
   /// Dispose resources
   void dispose() {
     _statusController.close();
-    // _inferenceModel?.close(); // Will be enabled in real integration
+    _inferenceModel?.close();
     _inferenceModel = null;
   }
 }
@@ -184,13 +212,31 @@ extension ModelStatusExtension on ModelStatus {
       case ModelStatus.idle:
         return 'Model not loaded';
       case ModelStatus.downloading:
-        return 'Downloading Gemma model...';
+        return 'Installing model from assets...';
       case ModelStatus.loading:
         return 'Loading Gemma model...';
       case ModelStatus.ready:
         return 'Gemma ready';
       case ModelStatus.generating:
         return 'Generating response...';
+      case ModelStatus.error:
+        return 'Model error';
+    }
+  }
+
+  /// Get status message with simulation mode context
+  String getMessageWithContext(bool isSimulationMode) {
+    switch (this) {
+      case ModelStatus.idle:
+        return 'Model not loaded';
+      case ModelStatus.downloading:
+        return 'Installing model from assets...';
+      case ModelStatus.loading:
+        return 'Loading Gemma model...';
+      case ModelStatus.ready:
+        return isSimulationMode ? 'Simulation mode' : 'Gemma ready';
+      case ModelStatus.generating:
+        return isSimulationMode ? 'Thinking... (simulation)' : 'Generating response...';
       case ModelStatus.error:
         return 'Model error';
     }
