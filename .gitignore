@@ -94,6 +94,7 @@ analysis_benchmark.json
 .pub/
 build/
 pubspec.lock
+.metadata
 
 # Generated files
 **/generated_plugin_registrant.dart
