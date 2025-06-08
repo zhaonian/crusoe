@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+// flutter_gemma types will be imported when needed for real implementation
+import 'model_downloader.dart';
 
 /// Service class for handling Gemma model operations
 class GemmaService {
@@ -11,6 +13,8 @@ class GemmaService {
   bool _isInitialized = false;
   bool _isLoading = false;
   String? _modelPath;
+  // InferenceModel will be used when real integration is enabled
+  dynamic _inferenceModel;
 
   /// Stream controller for model loading status
   final StreamController<ModelStatus> _statusController = StreamController<ModelStatus>.broadcast();
@@ -25,27 +29,58 @@ class GemmaService {
     _statusController.add(ModelStatus.loading);
 
     try {
-      // TODO: Replace with actual flutter_gemma initialization
-      // Example:
-      // await FlutterGemma.initialize(
-      //   modelPath: modelPath ?? 'assets/models/gemma-2b-it-int4.bin',
-      //   maxTokens: 512,
-      //   temperature: 0.8,
-      // );
-
-      // Simulate model loading for now
-      await Future.delayed(Duration(seconds: 3));
+      String? finalModelPath = modelPath;
       
-      _modelPath = modelPath;
+      // If no model path provided, check for local model or download
+      if (finalModelPath == null) {
+        // Check if model exists locally
+        finalModelPath = await ModelDownloader.getLocalModelPath();
+        
+        // If not found locally, download it
+        if (finalModelPath == null) {
+          _statusController.add(ModelStatus.downloading);
+          finalModelPath = await ModelDownloader.downloadModel(
+            onProgress: (progress) {
+              // Optionally emit progress updates
+              debugPrint('Download progress: ${(progress * 100).toStringAsFixed(1)}%');
+            },
+            onStatusUpdate: (status) {
+              debugPrint('Download status: $status');
+            },
+          );
+        }
+      }
+      
+      _statusController.add(ModelStatus.loading);
+      
+      // In demo mode, we simulate model setup
+      // Real integration would use flutter_gemma here:
+      //
+      // import 'package:flutter_gemma/flutter_gemma.dart';
+      // final gemma = FlutterGemmaPlugin.instance;
+      // final modelManager = gemma.modelManager;
+      // await modelManager.setModelPath(finalModelPath);
+      // _inferenceModel = await gemma.createModel(
+      //   modelType: ModelType.gemmaIt,
+      //   preferredBackend: BackendType.gpu,
+      //   maxTokens: 1024,
+      // );
+      
+      debugPrint('🤖 Setting up model from: $finalModelPath');
+      await Future.delayed(Duration(seconds: 2)); // Simulate setup time
+      debugPrint('✅ Gemma model setup completed (simulation mode)');
+      
+      _modelPath = finalModelPath;
       _isInitialized = true;
       _isLoading = false;
       
       _statusController.add(ModelStatus.ready);
+      debugPrint('✅ Gemma model initialized successfully at: $finalModelPath');
       return true;
     } catch (e) {
       _isLoading = false;
       _statusController.add(ModelStatus.error);
-      debugPrint('Failed to initialize Gemma model: $e');
+      debugPrint('❌ Failed to initialize Gemma model: $e');
       return false;
     }
   }
@@ -59,23 +94,38 @@ class GemmaService {
     try {
       _statusController.add(ModelStatus.generating);
 
-      // TODO: Replace with actual flutter_gemma inference
-      // Example:
-      // final response = await FlutterGemma.generateResponse(prompt);
-      // return response;
-
-      // Simulate response generation for now
-      await Future.delayed(Duration(seconds: 2));
+      // NOTE: In this demo, we use simulation since we don't have the real 529MB model
+      // In production, this would use the real Gemma model with the code below:
       
-      // Simulated responses based on prompt keywords
+      // if (_inferenceModel == null) {
+      //   throw Exception('Inference model not initialized');
+      // }
+      // 
+      // final chat = await _inferenceModel!.createChat(
+      //   temperature: 0.8,
+      //   randomSeed: 42,
+      //   topK: 40,
+      // );
+      // 
+      // await chat.addQueryChunk(Message(text: prompt));
+      // final response = await chat.generateChatResponse();
+      
+      // For demo purposes, fall back to simulation
+      await Future.delayed(Duration(seconds: 1));
       final response = _generateSimulatedResponse(prompt);
       
+      debugPrint('🤖 Demo response generated: ${response.substring(0, response.length.clamp(0, 50))}...');
+      
       _statusController.add(ModelStatus.ready);
-      return response;
+      return response.trim();
     } catch (e) {
       _statusController.add(ModelStatus.error);
-      debugPrint('Failed to generate response: $e');
-      rethrow;
+      debugPrint('❌ Failed to generate response: $e');
+      
+      // Fallback to simulated response if real model fails
+      final fallbackResponse = _generateSimulatedResponse(prompt);
+      _statusController.add(ModelStatus.ready);
+      return "⚠️ Fallback mode: $fallbackResponse";
     }
   }
 
@@ -112,13 +162,15 @@ class GemmaService {
   /// Dispose resources
   void dispose() {
     _statusController.close();
-    // TODO: Add flutter_gemma cleanup if needed
+    // _inferenceModel?.close(); // Will be enabled in real integration
+    _inferenceModel = null;
   }
 }
 
 /// Enum representing the current status of the model
 enum ModelStatus {
   idle,
+  downloading,
   loading,
   ready,
   generating,
@@ -131,6 +183,8 @@ extension ModelStatusExtension on ModelStatus {
     switch (this) {
       case ModelStatus.idle:
         return 'Model not loaded';
+      case ModelStatus.downloading:
+        return 'Downloading Gemma model...';
       case ModelStatus.loading:
         return 'Loading Gemma model...';
       case ModelStatus.ready:

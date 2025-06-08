@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/gemma_service.dart';
+import 'model_info_screen.dart';
 
 class ChatMessage {
   final String text;
@@ -38,7 +39,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _initializeModel();
     _addWelcomeMessage();
     _listenToModelStatus();
-    
+
     // Listen to text changes to update send button state
     _textController.addListener(() {
       setState(() {
@@ -348,6 +349,16 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               _addWelcomeMessage();
             },
             tooltip: "Clear chat",
+          ),
+          IconButton(
+            icon: Icon(Icons.storage),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ModelInfoScreen()),
+              );
+            },
+            tooltip: "Model info",
           ),
           IconButton(
             icon: Icon(Icons.info_outline),
