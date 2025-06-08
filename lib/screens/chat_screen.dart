@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/gemma_service.dart';
 import 'model_info_screen.dart';
@@ -32,6 +33,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   bool _isModelLoaded = false;
   bool _isGenerating = false;
   ModelStatus _currentStatus = ModelStatus.idle;
+
+  // For cancelling ongoing generation
+  Completer<void>? _generationCancellation;
 
   @override
   void initState() {
@@ -142,20 +146,75 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _generateResponse(text);
   }
 
+  void _stopGeneration() {
+    debugPrint('🛑 Stop generation requested');
+
+    if (_generationCancellation != null &&
+        !_generationCancellation!.isCompleted) {
+      _generationCancellation!.complete();
+      debugPrint('🛑 Generation cancellation signal sent');
+    }
+
+    setState(() {
+      _isGenerating = false;
+      // Remove loading message if it exists
+      if (_messages.isNotEmpty && _messages.last.isLoading) {
+        _messages.removeLast();
+        // Add cancellation message
+        _messages.add(
+          ChatMessage(
+            text: "⚠️ Response generation was stopped.",
+            isUser: false,
+            timestamp: DateTime.now(),
+          ),
+        );
+      }
+    });
+
+    debugPrint('🛑 Generation stopped and UI updated');
+  }
+
   Future<void> _generateResponse(String prompt) async {
     debugPrint('🎯 _generateResponse called with prompt: "$prompt"');
+
+    // Create cancellation completer for this generation
+    _generationCancellation = Completer<void>();
+
     try {
       debugPrint('🔄 Calling gemmaService.generateResponse...');
-      final response = await _gemmaService.generateResponse(prompt);
+
+      // Race between the generation and cancellation
+      final result = await Future.any([
+        _gemmaService
+            .generateResponse(prompt)
+            .then((response) => {'type': 'response', 'data': response}),
+        _generationCancellation!.future.then((_) => {'type': 'cancelled'}),
+      ]);
+
+      // Check if generation was cancelled
+      if (result['type'] == 'cancelled') {
+        debugPrint('🛑 Generation was cancelled');
+        return; // Exit early, UI already updated by _stopGeneration
+      }
+
+      final response = result['data'] as String;
       debugPrint(
         '✅ Received response from service: "${response.substring(0, response.length.clamp(0, 100))}${response.length > 100 ? "..." : ""}"',
       );
       debugPrint('📏 Response length in UI: ${response.length} characters');
 
+      // Check once more if cancelled (in case cancellation happened during processing)
+      if (_generationCancellation!.isCompleted) {
+        debugPrint('🛑 Generation was cancelled during processing');
+        return;
+      }
+
       setState(() {
         debugPrint('🗑️ Removing loading message...');
         // Remove loading message
-        _messages.removeLast();
+        if (_messages.isNotEmpty && _messages.last.isLoading) {
+          _messages.removeLast();
+        }
         debugPrint('➕ Adding response message to UI...');
         // Add actual response
         _messages.add(
@@ -170,19 +229,29 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       debugPrint('✅ UI update complete');
     } catch (e) {
       debugPrint('❌ Error in _generateResponse: $e');
-      setState(() {
-        _messages.removeLast(); // Remove loading message
-        _messages.add(
-          ChatMessage(
-            text: "Sorry, I encountered an error. Please try again.",
-            isUser: false,
-            timestamp: DateTime.now(),
-          ),
-        );
-        // Ensure generating state is reset even on error
-        _isGenerating = false;
-      });
-      _showError("Generation failed: $e");
+
+      // Only update UI if not cancelled
+      if (_generationCancellation == null ||
+          !_generationCancellation!.isCompleted) {
+        setState(() {
+          if (_messages.isNotEmpty && _messages.last.isLoading) {
+            _messages.removeLast(); // Remove loading message
+          }
+          _messages.add(
+            ChatMessage(
+              text: "Sorry, I encountered an error. Please try again.",
+              isUser: false,
+              timestamp: DateTime.now(),
+            ),
+          );
+          // Ensure generating state is reset even on error
+          _isGenerating = false;
+        });
+        _showError("Generation failed: $e");
+      }
+    } finally {
+      // Clean up the cancellation completer
+      _generationCancellation = null;
     }
   }
 
@@ -196,6 +265,46 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         );
       }
     });
+  }
+
+  // Helper method to determine button action
+  VoidCallback? _getButtonAction() {
+    debugPrint('🔘 Button state - _isModelLoaded: $_isModelLoaded, _isGenerating: $_isGenerating, hasText: ${_textController.text.trim().isNotEmpty}');
+    
+    if (!_isModelLoaded) {
+      debugPrint('🔘 Button disabled - model not loaded');
+      return null;
+    }
+    
+    if (_isGenerating) {
+      debugPrint('🔘 Button enabled - STOP action');
+      return _stopGeneration;
+    }
+    
+    if (_textController.text.trim().isNotEmpty) {
+      debugPrint('🔘 Button enabled - SEND action');
+      return () => _handleSubmitted(_textController.text);
+    }
+    
+    debugPrint('🔘 Button disabled - no text');
+    return null;
+  }
+
+  // Helper method to determine button color
+  Color _getButtonColor() {
+    if (!_isModelLoaded) {
+      return Colors.grey;
+    }
+    
+    if (_isGenerating) {
+      return Colors.red; // Red stop button
+    }
+    
+    if (_textController.text.trim().isNotEmpty) {
+      return Theme.of(context).primaryColor; // Primary color send button
+    }
+    
+    return Colors.grey; // Grey disabled button
   }
 
   Widget _buildMessage(ChatMessage message, int index) {
@@ -325,18 +434,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             ),
             SizedBox(width: 12),
             FloatingActionButton(
-              onPressed:
-                  (_isModelLoaded &&
-                      !_isGenerating &&
-                      _textController.text.trim().isNotEmpty)
-                  ? () => _handleSubmitted(_textController.text)
-                  : null,
-              backgroundColor:
-                  (_isModelLoaded &&
-                      !_isGenerating &&
-                      _textController.text.trim().isNotEmpty)
-                  ? Theme.of(context).primaryColor
-                  : Colors.grey,
+              onPressed: _getButtonAction(),
+              backgroundColor: _getButtonColor(),
               mini: true,
               child: Icon(
                 _isGenerating ? Icons.stop : Icons.send,
@@ -473,6 +572,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    // Cancel any ongoing generation
+    if (_generationCancellation != null && !_generationCancellation!.isCompleted) {
+      _generationCancellation!.complete();
+    }
+    
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
