@@ -31,9 +31,13 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  # UI and icons
   cupertino_icons: ^1.0.8
+  
+  # AI/ML dependencies (uncomment when ready to integrate)
+  # flutter_gemma: ^0.2.0  # Official Flutter plugin for Gemma
+  # or alternative method channel approach:
+  # tflite_flutter: ^0.10.4  # For TensorFlow Lite integration
 
 dev_dependencies:
   flutter_test:
