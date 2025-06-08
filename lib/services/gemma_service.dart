@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart';
+import 'package:flutter_gemma/core/chat.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
 import 'model_downloader.dart';
 
@@ -17,6 +18,7 @@ class GemmaService {
   bool _isSimulationMode = false; // Track if we're in fallback mode
   String? _modelPath;
   InferenceModel? _inferenceModel;
+  InferenceChat? _chatSession; // Maintain a single chat session
 
   /// Stream controller for model loading status
   final StreamController<ModelStatus> _statusController = StreamController<ModelStatus>.broadcast();
@@ -54,6 +56,14 @@ class GemmaService {
           maxTokens: 1024,
         );
         
+        // Create a single chat session that will be reused
+        debugPrint('💬 Creating persistent chat session...');
+        _chatSession = await _inferenceModel!.createChat(
+          temperature: 0.8,
+          randomSeed: 42,
+          topK: 40,
+        );
+        
         debugPrint('✅ Real Gemma model loaded successfully with new API');
         _isSimulationMode = false;
       } catch (modelError) {
@@ -61,6 +71,7 @@ class GemmaService {
         debugPrint('🔄 Falling back to simulation mode...');
         _isSimulationMode = true;
         _inferenceModel = null;
+        _chatSession = null;
       }
       
       _isInitialized = true;
@@ -102,25 +113,17 @@ class GemmaService {
       _statusController.add(ModelStatus.generating);
 
       // If we have a real model, use it
-      if (!_isSimulationMode && _inferenceModel != null) {
+      if (!_isSimulationMode && _chatSession != null) {
         debugPrint('🤖 Using real model for response generation...');
+        debugPrint('💬 Using existing chat session...');
         
-        // Create a chat session using the new API
-        final chat = await _inferenceModel!.createChat(
-          temperature: 0.8,
-          randomSeed: 42,
-          topK: 40,
-        );
-        
-        debugPrint('💬 Chat session created, adding query chunk...');
-        
-        // Add the user's query using the new Message API
-        await chat.addQueryChunk(Message(text: prompt, isUser: true));
+        // Add the user's query using the existing chat session
+        await _chatSession!.addQueryChunk(Message(text: prompt, isUser: true));
         
         debugPrint('✏️ Query chunk added, generating response...');
         
-        // Generate the response
-        final response = await chat.generateChatResponse();
+        // Generate the response using the existing chat session
+        final response = await _chatSession!.generateChatResponse();
         
         debugPrint('🤖 Real model response generated: "${response.substring(0, response.length.clamp(0, 100))}${response.length > 100 ? "..." : ""}"');
         debugPrint('📏 Response length: ${response.length} characters');
@@ -190,6 +193,7 @@ class GemmaService {
   /// Dispose resources
   void dispose() {
     _statusController.close();
+    _chatSession = null;
     _inferenceModel?.close();
     _inferenceModel = null;
   }

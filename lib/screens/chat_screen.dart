@@ -141,22 +141,31 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _generateResponse(String prompt) async {
+    debugPrint('🎯 _generateResponse called with prompt: "$prompt"');
     try {
+      debugPrint('🔄 Calling gemmaService.generateResponse...');
       final response = await _gemmaService.generateResponse(prompt);
+      debugPrint('✅ Received response from service: "${response.substring(0, response.length.clamp(0, 100))}${response.length > 100 ? "..." : ""}"');
+      debugPrint('📏 Response length in UI: ${response.length} characters');
 
       setState(() {
+        debugPrint('🗑️ Removing loading message...');
         // Remove loading message
         _messages.removeLast();
+        debugPrint('➕ Adding response message to UI...');
         // Add actual response
         _messages.add(
           ChatMessage(text: response, isUser: false, timestamp: DateTime.now()),
         );
+        debugPrint('💬 Total messages now: ${_messages.length}');
         // Ensure generating state is reset
         _isGenerating = false;
       });
 
       _scrollToBottom();
+      debugPrint('✅ UI update complete');
     } catch (e) {
+      debugPrint('❌ Error in _generateResponse: $e');
       setState(() {
         _messages.removeLast(); // Remove loading message
         _messages.add(
