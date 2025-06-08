@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/gemma_service.dart';
+import '../widgets/chat_input_area.dart';
 import 'model_info_screen.dart';
 
 class ChatMessage {
@@ -267,187 +268,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     });
   }
 
-  // Helper method to determine button action
-  VoidCallback? _getButtonAction() {
-    debugPrint('🔘 Button state - _isModelLoaded: $_isModelLoaded, _isGenerating: $_isGenerating, hasText: ${_textController.text.trim().isNotEmpty}');
-    
-    if (!_isModelLoaded) {
-      debugPrint('🔘 Button disabled - model not loaded');
-      return null;
-    }
-    
-    if (_isGenerating) {
-      debugPrint('🔘 Button enabled - STOP action');
-      return _stopGeneration;
-    }
-    
-    if (_textController.text.trim().isNotEmpty) {
-      debugPrint('🔘 Button enabled - SEND action');
-      return () => _handleSubmitted(_textController.text);
-    }
-    
-    debugPrint('🔘 Button disabled - no text');
-    return null;
-  }
-
-  // Helper method to determine button color
-  Color _getButtonColor() {
-    if (!_isModelLoaded) {
-      return Colors.grey;
-    }
-    
-    if (_isGenerating) {
-      return Colors.red; // Red stop button
-    }
-    
-    if (_textController.text.trim().isNotEmpty) {
-      return Theme.of(context).primaryColor; // Primary color send button
-    }
-    
-    return Colors.grey; // Grey disabled button
-  }
-
-  Widget _buildMessage(ChatMessage message, int index) {
-    final isUser = message.isUser;
-
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
-      child: Row(
-        mainAxisAlignment: isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isUser) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Theme.of(context).primaryColor,
-              child: Icon(Icons.smart_toy, color: Colors.white, size: 16),
-            ),
-            SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75,
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: isUser
-                    ? Theme.of(context).primaryColor
-                    : Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(18).copyWith(
-                  bottomRight: isUser
-                      ? Radius.circular(4)
-                      : Radius.circular(18),
-                  bottomLeft: !isUser
-                      ? Radius.circular(4)
-                      : Radius.circular(18),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: message.isLoading
-                  ? _buildLoadingIndicator()
-                  : Text(
-                      message.text,
-                      style: TextStyle(
-                        color: isUser ? Colors.white : null,
-                        fontSize: 16,
-                      ),
-                    ),
-            ),
-          ),
-          if (isUser) ...[
-            SizedBox(width: 8),
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.grey[300],
-              child: Icon(Icons.person, color: Colors.grey[600], size: 16),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingIndicator() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Theme.of(context).primaryColor,
-            ),
-          ),
-        ),
-        SizedBox(width: 12),
-        Text("Thinking...", style: TextStyle(fontStyle: FontStyle.italic)),
-      ],
-    );
-  }
-
-  Widget _buildInputArea() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.2))),
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
-                ),
-                child: TextField(
-                  controller: _textController,
-                  decoration: InputDecoration(
-                    hintText: _isModelLoaded
-                        ? "Type your message..."
-                        : "Loading AI model...",
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                  ),
-                  enabled: _isModelLoaded && !_isGenerating,
-                  maxLines: null,
-                  textCapitalization: TextCapitalization.sentences,
-                  onSubmitted: _handleSubmitted,
-                ),
-              ),
-            ),
-            SizedBox(width: 12),
-            FloatingActionButton(
-              onPressed: _getButtonAction(),
-              backgroundColor: _getButtonColor(),
-              mini: true,
-              child: Icon(
-                _isGenerating ? Icons.stop : Icons.send,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -564,7 +384,15 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         _buildMessage(_messages[index], index),
                   ),
           ),
-          _buildInputArea(),
+          ChatInputArea(
+            textController: _textController,
+            isModelLoaded: _isModelLoaded,
+            isGenerating: _isGenerating,
+            onSendPressed: () => _handleSubmitted(_textController.text),
+            onStopPressed: _stopGeneration,
+            onSubmitted: _handleSubmitted,
+            onTextChanged: () => setState(() {}),
+          ),
         ],
       ),
     );
@@ -580,5 +408,94 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Widget _buildMessage(ChatMessage message, int index) {
+    final isUser = message.isUser;
+
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
+      child: Row(
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!isUser) ...[
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: Theme.of(context).primaryColor,
+              child: Icon(Icons.smart_toy, color: Colors.white, size: 16),
+            ),
+            SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.75,
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isUser
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(18).copyWith(
+                  bottomRight: isUser
+                      ? Radius.circular(4)
+                      : Radius.circular(18),
+                  bottomLeft: !isUser
+                      ? Radius.circular(4)
+                      : Radius.circular(18),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: message.isLoading
+                  ? _buildLoadingIndicator()
+                  : Text(
+                      message.text,
+                      style: TextStyle(
+                        color: isUser ? Colors.white : null,
+                        fontSize: 16,
+                      ),
+                    ),
+            ),
+          ),
+          if (isUser) ...[
+            SizedBox(width: 8),
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.grey[300],
+              child: Icon(Icons.person, color: Colors.grey[600], size: 16),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).primaryColor,
+            ),
+          ),
+        ),
+        SizedBox(width: 12),
+        Text("Thinking...", style: TextStyle(fontStyle: FontStyle.italic)),
+      ],
+    );
   }
 }
