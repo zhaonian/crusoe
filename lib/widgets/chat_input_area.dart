@@ -121,6 +121,11 @@ class ChatInputArea extends StatelessWidget {
                         fontSize: 16,
                       ),
                       border: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 4,
                         vertical: 12,

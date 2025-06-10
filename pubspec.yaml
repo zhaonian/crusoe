@@ -36,8 +36,8 @@ dependencies:
   
   # AI/ML dependencies  
   flutter_gemma: ^0.8.6   # Flutter plugin for Gemma (compatible with iOS 12+)
-  path_provider: ^2.1.1   # For finding device storage paths
-  http: ^1.1.0            # For downloading models
+  path_provider: ^2.1.5   # For finding device storage paths (latest)
+  http: ^1.4.0            # For downloading models (latest)
 
 dev_dependencies:
   flutter_test:
@@ -48,7 +48,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

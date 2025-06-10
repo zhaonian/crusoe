@@ -25,79 +25,51 @@ class OfflineAIApp extends StatelessWidget {
           backgroundColor: Colors.blue[600],
           foregroundColor: Colors.white,
           elevation: 2,
-          centerTitle: false,
-        ),
-
-        // Floating Action Button
-        floatingActionButtonTheme: FloatingActionButtonThemeData(
-          backgroundColor: Colors.blue[600],
-          foregroundColor: Colors.white,
-        ),
-
-        // Input decoration
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(24),
-            borderSide: BorderSide.none,
+          centerTitle: true,
+          titleTextStyle: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         ),
 
-        // Text theme
-        textTheme: TextTheme(
-          bodyLarge: TextStyle(fontSize: 16),
-          bodyMedium: TextStyle(fontSize: 14),
-        ),
-
-        // Modern visual density
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-
-      // Dark theme for users who prefer it
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.blue,
-        primaryColor: Colors.blue[400],
-        scaffoldBackgroundColor: Color(0xFF121212),
-        cardColor: Color(0xFF1E1E1E),
-
-        appBarTheme: AppBarTheme(
-          backgroundColor: Color(0xFF1E1E1E),
-          foregroundColor: Colors.white,
+        // Card styling
+        cardTheme: CardThemeData(
           elevation: 2,
-          centerTitle: false,
-        ),
-
-        floatingActionButtonTheme: FloatingActionButtonThemeData(
-          backgroundColor: Colors.blue[400],
-          foregroundColor: Colors.white,
-        ),
-
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Color(0xFF2C2C2C),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(24),
-            borderSide: BorderSide.none,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
 
-        textTheme: TextTheme(
-          bodyLarge: TextStyle(fontSize: 16, color: Colors.white),
-          bodyMedium: TextStyle(fontSize: 14, color: Colors.white70),
+        // Button styling
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue[600],
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
         ),
 
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+        // Text field styling
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.blue[600]!, width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
       ),
-
-      // Automatically switch between light and dark themes
-      themeMode: ThemeMode.system,
-
-      // Set ChatScreen as the home screen
-      home: ChatScreen(),
+      home: const ChatScreen(),
     );
   }
 }
