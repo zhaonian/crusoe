@@ -15,7 +15,6 @@ class GemmaService {
 
   bool _isInitialized = false;
   bool _isLoading = false;
-  bool _isSimulationMode = false; // Track if we're in fallback mode
   String? _modelPath;
   InferenceModel? _inferenceModel;
   InferenceChat? _chatSession; // Maintain a single chat session
@@ -34,85 +33,61 @@ class GemmaService {
     _statusController.add(ModelStatus.loading);
 
     try {
-      // Try to initialize flutter_gemma using the new API
-      debugPrint('🤖 Attempting to load real Gemma model using new API...');
+      debugPrint('🤖 Loading Gemma model...');
 
-      try {
-        final gemma = FlutterGemmaPlugin.instance;
-        final modelManager = gemma.modelManager;
+      final gemma = FlutterGemmaPlugin.instance;
+      final modelManager = gemma.modelManager;
 
-        // Install model from assets using the new API
-        _statusController.add(ModelStatus.downloading);
-        debugPrint('📦 Installing model from assets...');
+      // Install model from assets
+      _statusController.add(ModelStatus.downloading);
+      debugPrint('📦 Installing model from assets...');
 
-        await modelManager.installModelFromAsset(
-          'models/gemma3-1b-it-int4.task',
-        );
+      await modelManager.installModelFromAsset(
+        'models/gemma3-1b-it-int4.task',
+      );
 
-        _statusController.add(ModelStatus.loading);
-        debugPrint('🏗️ Creating inference model...');
+      _statusController.add(ModelStatus.loading);
+      debugPrint('🏗️ Creating inference model...');
 
-        // Create the inference model with platform-optimized backend
-        final preferredBackend = Platform.isAndroid 
-            ? PreferredBackend.cpu  // Android: Use CPU for stability
-            : PreferredBackend.gpu; // iOS: Use GPU for performance
-        
-        debugPrint('🔧 Using ${Platform.isAndroid ? "CPU" : "GPU"} backend for ${Platform.isAndroid ? "Android" : "iOS"}');
-        
-        _inferenceModel = await gemma.createModel(
-          modelType: ModelType.gemmaIt,
-          preferredBackend: preferredBackend,
-          maxTokens: 1024,
-        );
+      // Create the inference model with platform-optimized backend
+      final preferredBackend = Platform.isAndroid 
+          ? PreferredBackend.cpu  // Android: Use CPU for stability
+          : PreferredBackend.gpu; // iOS: Use GPU for performance
+      
+      debugPrint('🔧 Using ${Platform.isAndroid ? "CPU" : "GPU"} backend for ${Platform.isAndroid ? "Android" : "iOS"}');
+      
+      _inferenceModel = await gemma.createModel(
+        modelType: ModelType.gemmaIt,
+        preferredBackend: preferredBackend,
+        maxTokens: 1024,
+      );
 
-        // Create a single chat session that will be reused
-        debugPrint('💬 Creating persistent chat session...');
-        _chatSession = await _inferenceModel!.createChat(
-          temperature: 0.8,
-          randomSeed: 42,
-          topK: 40,
-        );
+      // Create a single chat session that will be reused
+      debugPrint('💬 Creating persistent chat session...');
+      _chatSession = await _inferenceModel!.createChat(
+        temperature: 0.8,
+        randomSeed: 42,
+        topK: 40,
+      );
 
-        debugPrint('✅ Real Gemma model loaded successfully with new API');
-        _isSimulationMode = false;
-      } catch (modelError) {
-        debugPrint('⚠️ Real model failed to load: $modelError');
-        debugPrint('🔄 Falling back to simulation mode...');
-        _isSimulationMode = true;
-        _inferenceModel = null;
-        _chatSession = null;
-      }
-
+      debugPrint('✅ Gemma model loaded successfully');
       _isInitialized = true;
       _isLoading = false;
-
       _statusController.add(ModelStatus.ready);
-
-      if (_isSimulationMode) {
-        debugPrint('✅ Gemma service initialized in simulation mode');
-      } else {
-        debugPrint('✅ Gemma model initialized successfully with new API');
-      }
 
       return true;
     } catch (e) {
       _isLoading = false;
-
-      // Even if everything fails, fall back to simulation mode
-      debugPrint('❌ Complete initialization failure: $e');
-      debugPrint('🔄 Enabling simulation mode as final fallback...');
-
-      _isSimulationMode = true;
-      _isInitialized = true;
-      _statusController.add(ModelStatus.ready);
-
-      return true; // Return true because we can still work in simulation mode
+      _isInitialized = false;
+      _statusController.add(ModelStatus.error);
+      debugPrint('❌ Failed to initialize Gemma model: $e');
+      return false;
     }
   }
 
   /// Generate a response from the model
   Future<String> generateResponse(String prompt) async {
-    if (!_isInitialized) {
+    if (!_isInitialized || _chatSession == null) {
       throw Exception('Model not initialized. Call initialize() first.');
     }
 
@@ -123,98 +98,71 @@ class GemmaService {
     try {
       _statusController.add(ModelStatus.generating);
 
-      // If we have a real model, use it
-      if (!_isSimulationMode && _chatSession != null) {
-        debugPrint('🤖 Using real model for response generation...');
-        debugPrint('💬 Using existing chat session...');
+      // Add the user's query using the existing chat session
+      await _chatSession!.addQueryChunk(Message(text: prompt, isUser: true));
 
-        // Add the user's query using the existing chat session
-        await _chatSession!.addQueryChunk(Message(text: prompt, isUser: true));
+      debugPrint('✏️ Query chunk added, generating response...');
 
-        debugPrint('✏️ Query chunk added, generating response...');
+      // Generate the response using the existing chat session
+      final response = await _chatSession!.generateChatResponse();
 
-        // Generate the response using the existing chat session
-        final response = await _chatSession!.generateChatResponse();
+      debugPrint(
+        '🤖 Response generated: "${response.substring(0, response.length.clamp(0, 100))}${response.length > 100 ? "..." : ""}"',
+      );
+      debugPrint('📏 Response length: ${response.length} characters');
 
-        debugPrint(
-          '🤖 Real model response generated: "${response.substring(0, response.length.clamp(0, 100))}${response.length > 100 ? "..." : ""}"',
-        );
-        debugPrint('📏 Response length: ${response.length} characters');
-
-        _statusController.add(ModelStatus.ready);
-
-        final trimmedResponse = response.trim();
-        debugPrint(
-          '📋 Final trimmed response length: ${trimmedResponse.length} characters',
-        );
-
-        return trimmedResponse;
-      } else {
-        // Use simulation mode
-        debugPrint('🎭 Using simulation mode for response...');
-        await Future.delayed(
-          Duration(milliseconds: 500 + (prompt.length * 10)),
-        ); // Simulate processing time
-        final response = _generateSimulatedResponse(prompt);
-
-        debugPrint('🎭 Simulation response generated: "$response"');
-        _statusController.add(ModelStatus.ready);
-        return response;
-      }
-    } catch (e) {
-      debugPrint('❌ Generation error: $e, falling back to simulation');
-
-      // Always fall back to simulation if anything fails
-      await Future.delayed(Duration(milliseconds: 300));
-      final fallbackResponse = _generateSimulatedResponse(prompt);
       _statusController.add(ModelStatus.ready);
-      return "🎭 Simulation mode: $fallbackResponse";
+
+      final trimmedResponse = response.trim();
+      debugPrint(
+        '📋 Final trimmed response length: ${trimmedResponse.length} characters',
+      );
+
+      return trimmedResponse;
+    } catch (e) {
+      debugPrint('❌ Generation error: $e');
+      _statusController.add(ModelStatus.error);
+      throw Exception('Failed to generate response: $e');
     }
   }
 
-  /// Generate a simulated response (fallback only)
-  String _generateSimulatedResponse(String prompt) {
-    final lowerPrompt = prompt.toLowerCase();
+  /// Create a new chat session
+  Future<void> createNewChatSession() async {
+    if (!_isInitialized || _inferenceModel == null) {
+      throw Exception('Model not initialized. Call initialize() first.');
+    }
 
-    if (lowerPrompt.contains('hello') || lowerPrompt.contains('hi')) {
-      return "Hello! I'm your offline AI assistant running in simulation mode. How can I help you today?";
-    } else if (lowerPrompt.contains('weather')) {
-      return "I'm running offline in simulation mode, so I can't check current weather. But I can help you with other questions!";
-    } else if (lowerPrompt.contains('what') && lowerPrompt.contains('you')) {
-      return "I'm Gemma running in simulation mode on your device. While the real model is being prepared, I can still help with various tasks like answering questions and conversations!";
-    } else if (lowerPrompt.contains('code') ||
-        lowerPrompt.contains('program')) {
-      return "I can help you with coding questions! What programming language or concept would you like assistance with?";
-    } else if (lowerPrompt.contains('joke')) {
-      return "Why don't scientists trust atoms? Because they make up everything! 😄 (This is from simulation mode!)";
-    } else if (lowerPrompt.contains('explain')) {
-      return "I'd be happy to explain that topic. Could you be more specific about what you'd like me to explain?";
-    } else if (lowerPrompt.contains('model') ||
-        lowerPrompt.contains('simulation')) {
-      return "I'm currently running in simulation mode because the real Gemma model couldn't be loaded. This allows you to test the chat interface while the model setup is being worked on!";
-    } else {
-      return "That's an interesting question! I'm running in simulation mode to provide you with responses while the real AI model is being set up. What else would you like to know?";
+    try {
+      debugPrint('🔄 Creating new chat session...');
+      _chatSession = await _inferenceModel!.createChat(
+        temperature: 0.8,
+        randomSeed: 42,
+        topK: 40,
+      );
+      debugPrint('✅ New chat session created successfully');
+    } catch (e) {
+      debugPrint('❌ Failed to create new chat session: $e');
+      throw Exception('Failed to create new chat session: $e');
     }
   }
 
   /// Check if the model is ready to generate responses
-  bool get isReady => _isInitialized && !_isLoading;
+  bool get isReady => _isInitialized && _chatSession != null;
 
-  /// Check if the model is currently loading
-  bool get isLoading => _isLoading;
+  /// Get the current model status
+  ModelStatus get currentStatus {
+    if (!_isInitialized) return ModelStatus.idle;
+    if (_isLoading) return ModelStatus.loading;
+    if (_chatSession == null) return ModelStatus.error;
+    return ModelStatus.ready;
+  }
 
-  /// Check if running in simulation mode
-  bool get isSimulationMode => _isSimulationMode;
-
-  /// Get current model path
-  String? get modelPath => _modelPath;
-
-  /// Dispose resources
-  void dispose() {
+  /// Clean up resources
+  Future<void> dispose() async {
     _statusController.close();
     _chatSession = null;
-    _inferenceModel?.close();
     _inferenceModel = null;
+    _isInitialized = false;
   }
 }
 

@@ -58,17 +58,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     Future.delayed(Duration(milliseconds: 1000), () {
       if (mounted) {
         setState(() {
-          String welcomeMessage =
-              "👋 Hello! I'm your offline AI assistant powered by Gemma. How can I help you today?";
-
-          if (_gemmaService.isSimulationMode) {
-            welcomeMessage =
-                "👋 Hello! I'm running in simulation mode while the Gemma model is being set up. I can still chat with you! How can I help you today?";
-          }
-
           _messages.add(
             ChatMessage(
-              text: welcomeMessage,
+              text: "👋 Hello! I'm your offline AI assistant powered by Gemma. How can I help you today?",
               isUser: false,
               timestamp: DateTime.now(),
             ),
@@ -268,6 +260,18 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     });
   }
 
+  void _handleRefresh() async {
+    setState(() {
+      _messages.clear();
+    });
+    
+    // Create a new chat session
+    await _gemmaService.createNewChatSession();
+    
+    // Add welcome message after new session is created
+    _addWelcomeMessage();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -293,12 +297,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         actions: [
           IconButton(
             icon: Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {
-                _messages.clear();
-              });
-              _addWelcomeMessage();
-            },
+            onPressed: _handleRefresh,
             tooltip: "Clear chat",
           ),
           IconButton(
