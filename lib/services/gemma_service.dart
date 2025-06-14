@@ -5,6 +5,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/core/chat.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
+import '../constants/model_constants.dart';
 
 /// Service class for handling Gemma model operations
 class GemmaService {
@@ -42,7 +43,9 @@ class GemmaService {
       _statusController.add(ModelStatus.downloading);
       debugPrint('📦 Installing model from assets...');
 
-      await modelManager.installModelFromAsset('models/gemma3-1b-it-int4.task');
+      await modelManager.installModelFromAsset(
+        ModelConstants.gemma3n_e2b_it_int4,
+      );
 
       _statusController.add(ModelStatus.loading);
       debugPrint('🏗️ Creating inference model...');
