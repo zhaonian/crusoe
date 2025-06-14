@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/gemma_service.dart';
 import '../widgets/chat_input_area.dart';
 import 'model_info_screen.dart';
+import '../widgets/markdown_message.dart';
 
 class ChatMessage {
   final String text;
@@ -389,6 +390,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   Widget _buildMessage(ChatMessage message, int index) {
     final isUser = message.isUser;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
@@ -434,13 +436,17 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               ),
               child: message.isLoading
                   ? _buildLoadingIndicator()
-                  : Text(
-                      message.text,
-                      style: TextStyle(
-                        color: isUser ? Colors.white : null,
-                        fontSize: 16,
-                      ),
-                    ),
+                  : isUser
+                      ? Text(
+                          message.text,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        )
+                      : MarkdownMessage(
+                          content: message.text,
+                        ),
             ),
           ),
           if (isUser) ...[
