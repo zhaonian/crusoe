@@ -24,15 +24,15 @@ class ChatInputArea extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final hasText = textController.text.trim().isNotEmpty;
-    
+
     return Container(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(
           top: BorderSide(
-            color: isDarkMode 
-                ? Colors.grey.withOpacity(0.1) 
+            color: isDarkMode
+                ? Colors.grey.withOpacity(0.1)
                 : Colors.grey.withOpacity(0.15),
             width: 0.5,
           ),
@@ -45,13 +45,11 @@ class ChatInputArea extends StatelessWidget {
             maxHeight: 120, // Limit max height for multiline
           ),
           decoration: BoxDecoration(
-            color: isDarkMode 
-                ? Color(0xFF2D2D2D) 
-                : Colors.white,
+            color: isDarkMode ? Color(0xFF2D2D2D) : Colors.white,
             borderRadius: BorderRadius.circular(25),
             border: Border.all(
-              color: isDarkMode 
-                  ? Colors.grey.withOpacity(0.2) 
+              color: isDarkMode
+                  ? Colors.grey.withOpacity(0.2)
                   : Colors.grey.withOpacity(0.3),
               width: 1,
             ),
@@ -71,7 +69,7 @@ class ChatInputArea extends StatelessWidget {
                 width: 44,
                 height: 44,
                 child: IconButton(
-                  onPressed: isModelLoaded && !isGenerating 
+                  onPressed: isModelLoaded && !isGenerating
                       ? () {
                           // Future: Add attachment functionality
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -92,7 +90,7 @@ class ChatInputArea extends StatelessWidget {
                   splashRadius: 20,
                 ),
               ),
-              
+
               // Text input area
               Expanded(
                 child: Container(
@@ -106,18 +104,13 @@ class ChatInputArea extends StatelessWidget {
                     maxLines: null,
                     textCapitalization: TextCapitalization.sentences,
                     textInputAction: TextInputAction.newline,
-                    style: TextStyle(
-                      fontSize: 16,
-                      height: 1.4,
-                    ),
+                    style: TextStyle(fontSize: 16, height: 1.4),
                     decoration: InputDecoration(
                       hintText: isModelLoaded
                           ? "Message..."
-                          : "Loading AI model...",
+                          : "LLM Thinking...",
                       hintStyle: TextStyle(
-                        color: isDarkMode 
-                            ? Colors.grey[500] 
-                            : Colors.grey[600],
+                        color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
                         fontSize: 16,
                       ),
                       border: InputBorder.none,
@@ -137,14 +130,16 @@ class ChatInputArea extends StatelessWidget {
                       onTextChanged?.call();
                     },
                     onSubmitted: (text) {
-                      if (text.trim().isNotEmpty && isModelLoaded && !isGenerating) {
+                      if (text.trim().isNotEmpty &&
+                          isModelLoaded &&
+                          !isGenerating) {
                         onSubmitted?.call(text);
                       }
                     },
                   ),
                 ),
               ),
-              
+
               // Send/Stop button
               Container(
                 width: 44,
@@ -168,14 +163,18 @@ class ChatInputArea extends StatelessWidget {
                         splashRadius: 20,
                       )
                     : IconButton(
-                        onPressed: hasText && isModelLoaded ? onSendPressed : null,
+                        onPressed: hasText && isModelLoaded
+                            ? onSendPressed
+                            : null,
                         icon: Container(
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
                             color: hasText && isModelLoaded
                                 ? Theme.of(context).primaryColor
-                                : (isDarkMode ? Colors.grey[700] : Colors.grey[400]),
+                                : (isDarkMode
+                                      ? Colors.grey[700]
+                                      : Colors.grey[400]),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
@@ -193,4 +192,4 @@ class ChatInputArea extends StatelessWidget {
       ),
     );
   }
-} 
+}

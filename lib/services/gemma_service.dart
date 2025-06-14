@@ -10,7 +10,7 @@ import 'package:flutter_gemma/pigeon.g.dart';
 class GemmaService {
   static GemmaService? _instance;
   static GemmaService get instance => _instance ??= GemmaService._internal();
-  
+
   GemmaService._internal();
 
   bool _isInitialized = false;
@@ -42,20 +42,21 @@ class GemmaService {
       _statusController.add(ModelStatus.downloading);
       debugPrint('📦 Installing model from assets...');
 
-      await modelManager.installModelFromAsset(
-        'models/gemma3-1b-it-int4.task',
-      );
+      await modelManager.installModelFromAsset('models/gemma3-1b-it-int4.task');
 
       _statusController.add(ModelStatus.loading);
       debugPrint('🏗️ Creating inference model...');
 
       // Create the inference model with platform-optimized backend
-      final preferredBackend = Platform.isAndroid 
-          ? PreferredBackend.cpu  // Android: Use CPU for stability
+      final preferredBackend = Platform.isAndroid
+          ? PreferredBackend
+                .cpu // Android: Use CPU for stability
           : PreferredBackend.gpu; // iOS: Use GPU for performance
-      
-      debugPrint('🔧 Using ${Platform.isAndroid ? "CPU" : "GPU"} backend for ${Platform.isAndroid ? "Android" : "iOS"}');
-      
+
+      debugPrint(
+        '🔧 Using ${Platform.isAndroid ? "CPU" : "GPU"} backend for ${Platform.isAndroid ? "Android" : "iOS"}',
+      );
+
       _inferenceModel = await gemma.createModel(
         modelType: ModelType.gemmaIt,
         preferredBackend: preferredBackend,
@@ -167,11 +168,17 @@ class GemmaService {
 }
 
 /// Enum representing the current status of the model
-enum ModelStatus { idle, downloading, loading, ready, generating, error }
+enum ModelStatus {
+  idle,
+  downloading,
+  loading,
+  ready,
+  generating,
+  error;
 
-/// Extension to get human-readable status messages
-extension ModelStatusExtension on ModelStatus {
-  String get message {
+  bool get isOperational => this == ready;
+
+  String getMessageWithContext() {
     switch (this) {
       case ModelStatus.idle:
         return 'Model not loaded';
@@ -180,34 +187,10 @@ extension ModelStatusExtension on ModelStatus {
       case ModelStatus.loading:
         return 'Loading Gemma model...';
       case ModelStatus.ready:
+      case ModelStatus.generating:
         return 'Gemma ready';
-      case ModelStatus.generating:
-        return 'Generating response...';
       case ModelStatus.error:
         return 'Model error';
     }
   }
-
-  /// Get status message with simulation mode context
-  String getMessageWithContext(bool isSimulationMode) {
-    switch (this) {
-      case ModelStatus.idle:
-        return 'Model not loaded';
-      case ModelStatus.downloading:
-        return 'Installing model from assets...';
-      case ModelStatus.loading:
-        return 'Loading Gemma model...';
-      case ModelStatus.ready:
-        return isSimulationMode ? 'Simulation mode' : 'Gemma ready';
-      case ModelStatus.generating:
-        return isSimulationMode
-            ? 'Thinking... (simulation)'
-            : 'Generating response...';
-      case ModelStatus.error:
-        return 'Model error';
-    }
-  }
-
-  bool get isOperational =>
-      this == ModelStatus.ready || this == ModelStatus.generating;
 }

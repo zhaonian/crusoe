@@ -54,13 +54,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _addWelcomeMessage() {
-    // Wait a moment to check if we're in simulation mode
     Future.delayed(Duration(milliseconds: 1000), () {
       if (mounted) {
         setState(() {
           _messages.add(
             ChatMessage(
-              text: "👋 Hello! I'm your offline AI assistant powered by Gemma. How can I help you today?",
+              text:
+                  "👋 Hello! I'm your offline AI assistant powered by Gemma. How can I help you today?",
               isUser: false,
               timestamp: DateTime.now(),
             ),
@@ -264,10 +264,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     setState(() {
       _messages.clear();
     });
-    
+
     // Create a new chat session
     await _gemmaService.createNewChatSession();
-    
+
     // Add welcome message after new session is created
     _addWelcomeMessage();
   }
@@ -285,9 +285,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               children: [
                 Text("Offline AI Chat", style: TextStyle(fontSize: 18)),
                 Text(
-                  _currentStatus.getMessageWithContext(
-                    _gemmaService.isSimulationMode,
-                  ),
+                  _currentStatus.getMessageWithContext(),
                   style: TextStyle(fontSize: 12, color: Colors.grey[300]),
                 ),
               ],
@@ -335,27 +333,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       ),
       body: Column(
         children: [
-          if (!_isModelLoaded)
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(16),
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    _currentStatus.getMessageWithContext(
-                      _gemmaService.isSimulationMode,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           Expanded(
             child: _messages.isEmpty
                 ? Center(
@@ -400,10 +377,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     // Cancel any ongoing generation
-    if (_generationCancellation != null && !_generationCancellation!.isCompleted) {
+    if (_generationCancellation != null &&
+        !_generationCancellation!.isCompleted) {
       _generationCancellation!.complete();
     }
-    
+
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
