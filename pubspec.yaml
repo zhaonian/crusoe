@@ -40,6 +40,10 @@ dependencies:
   path_provider: ^2.1.5   # For finding device storage paths (latest)
   http: ^1.4.0            # For downloading models (latest)
 
+  # Authentication and secure storage
+  flutter_appauth: ^9.0.1
+  flutter_secure_storage: ^9.2.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
