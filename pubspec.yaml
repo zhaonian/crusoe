@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_dotenv: ^5.2.1
 
   # UI and icons
   cupertino_icons: ^1.0.8
@@ -43,6 +44,9 @@ dependencies:
   # Authentication and secure storage
   flutter_appauth: ^9.0.1
   flutter_secure_storage: ^9.2.4
+
+  # Background downloads
+  flutter_downloader: ^1.12.0
 
 dev_dependencies:
   flutter_test:
@@ -69,6 +73,7 @@ flutter:
   # Assets for AI models and app resources
   assets:
     - assets/models/
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

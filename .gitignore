@@ -117,7 +117,7 @@ doc/api/
 **/doc/api/
 
 # Environment files
-.env*
+.env
 
 # IDE related
 .vscode/*

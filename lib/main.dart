@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
-import 'screens/chat_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'screens/auth_screen.dart';
 
-void main() {
-  runApp(OfflineAIApp());
+void main() async {
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print('Warning: .env file not found. Make sure to create it with HUGGINGFACE_CLIENT_ID');
+  }
+  
+  runApp(const OfflineAIApp());
 }
 
 class OfflineAIApp extends StatelessWidget {
@@ -11,7 +18,7 @@ class OfflineAIApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Offline AI Chat',
+      title: 'Offline AI',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // Modern, clean theme optimized for chat interfaces
@@ -69,7 +76,7 @@ class OfflineAIApp extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
-      home: const ChatScreen(),
+      home: const AuthScreen(),
     );
   }
 }
