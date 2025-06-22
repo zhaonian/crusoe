@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/gemma_service.dart';
 import '../widgets/chat_input_area.dart';
+import '../widgets/glassmorphism_app_bar.dart';
 import 'model_info_screen.dart';
 import '../widgets/markdown_message.dart';
 
@@ -275,102 +276,132 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Icon(Icons.smart_toy),
-            SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Offline AI Chat", style: TextStyle(fontSize: 18)),
-                Text(
-                  _currentStatus.getMessageWithContext(),
-                  style: TextStyle(fontSize: 12, color: Colors.grey[300]),
-                ),
-              ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark ? [
+            Colors.blue[900]!,
+            Colors.blue[800]!,
+            Colors.purple[800]!,
+            Colors.pink[800]!,
+          ] : [
+            Colors.blue[100]!,
+            Colors.blue[50]!,
+            Colors.purple[50]!,
+            Colors.pink[50]!,
+          ],
+          stops: [0.0, 0.3, 0.7, 1.0],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: GlassmorphismAppBar(
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.smart_toy, color: Colors.white),
+              SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Offline AI Chat", 
+                    style: TextStyle(
+                      fontSize: 18, 
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    )
+                  ),
+                  Text(
+                    _currentStatus.getMessageWithContext(),
+                    style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh, color: Colors.white),
+              onPressed: _handleRefresh,
+              tooltip: "Clear chat",
+            ),
+            IconButton(
+              icon: Icon(Icons.storage, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ModelInfoScreen()),
+                );
+              },
+              tooltip: "Model info",
+            ),
+            IconButton(
+              icon: Icon(Icons.info_outline, color: Colors.white),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text("About"),
+                    content: Text(
+                      "This chat runs completely offline using Google's Gemma model. "
+                      "Your conversations stay private on your device.",
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text("OK"),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _handleRefresh,
-            tooltip: "Clear chat",
-          ),
-          IconButton(
-            icon: Icon(Icons.storage),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ModelInfoScreen()),
-              );
-            },
-            tooltip: "Model info",
-          ),
-          IconButton(
-            icon: Icon(Icons.info_outline),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text("About"),
-                  content: Text(
-                    "This chat runs completely offline using Google's Gemma model. "
-                    "Your conversations stay private on your device.",
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text("OK"),
+        body: Column(
+          children: [
+            Expanded(
+              child: _messages.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            "Start a conversation!",
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) =>
+                          _buildMessage(_messages[index], index),
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _messages.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          "Start a conversation!",
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) =>
-                        _buildMessage(_messages[index], index),
-                  ),
-          ),
-          ChatInputArea(
-            textController: _textController,
-            isModelLoaded: _isModelLoaded,
-            isGenerating: _isGenerating,
-            onSendPressed: () => _handleSubmitted(_textController.text),
-            onStopPressed: _stopGeneration,
-            onSubmitted: _handleSubmitted,
-            onTextChanged: () => setState(() {}),
-          ),
-        ],
+            ),
+            ChatInputArea(
+              textController: _textController,
+              isModelLoaded: _isModelLoaded,
+              isGenerating: _isGenerating,
+              onSendPressed: () => _handleSubmitted(_textController.text),
+              onStopPressed: _stopGeneration,
+              onSubmitted: _handleSubmitted,
+              onTextChanged: () => setState(() {}),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -428,7 +459,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: Offset(0, 2),
                   ),

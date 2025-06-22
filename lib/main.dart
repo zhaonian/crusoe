@@ -17,20 +17,8 @@ class OfflineAIApp extends StatelessWidget {
         // Modern, clean theme optimized for chat interfaces
         primarySwatch: Colors.blue,
         primaryColor: Colors.blue[600],
-        scaffoldBackgroundColor: Colors.grey[50],
+        scaffoldBackgroundColor: Colors.transparent,
         cardColor: Colors.white,
-
-        // AppBar styling
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.blue[600],
-          foregroundColor: Colors.white,
-          elevation: 2,
-          centerTitle: true,
-          titleTextStyle: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
 
         // Card styling
         cardTheme: CardThemeData(
@@ -65,6 +53,50 @@ class OfflineAIApp extends StatelessWidget {
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.blue,
+        primaryColor: Colors.blue[400],
+        scaffoldBackgroundColor: Colors.transparent,
+        cardColor: Colors.grey[850],
+
+        // Card styling for dark mode
+        cardTheme: CardThemeData(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+
+        // Button styling for dark mode
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue[400],
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+
+        // Text field styling for dark mode
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.blue[400]!, width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey[600]!, width: 1),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),

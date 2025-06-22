@@ -19,9 +19,10 @@ class GemmaService {
   String? _modelPath;
   InferenceModel? _inferenceModel;
   InferenceChat? _chatSession; // Maintain a single chat session
-  
+
   // System prompt to make the AI smarter as an assistant
-  static const String _defaultSystemPrompt = '''You are a helpful, intelligent, and knowledgeable AI assistant. Your goal is to provide accurate, useful, and engaging responses. Please:
+  static const String _defaultSystemPrompt =
+      '''You are a helpful, intelligent, and knowledgeable AI assistant. Your goal is to provide accurate, useful, and engaging responses. Please:
 
 • Be conversational and friendly while remaining professional
 • Provide clear, well-structured answers
@@ -112,17 +113,17 @@ You are running offline on the user's device, so you cannot access real-time inf
   Future<void> _initializeSystemPrompt(String systemPrompt) async {
     try {
       debugPrint('📝 Setting up AI assistant with system prompt...');
-      
+
       // Add system prompt as an assistant message to establish context
-      await _chatSession!.addQueryChunk(Message(
-        text: systemPrompt, 
-        isUser: false
-      ));
-      
+      await _chatSession!.addQueryChunk(
+        Message(text: systemPrompt, isUser: false),
+      );
+
       // Generate a brief acknowledgment to "consume" the system prompt
       final acknowledgment = await _chatSession!.generateChatResponse();
-      debugPrint('🤖 System prompt acknowledged: ${acknowledgment.substring(0, 50)}...');
-      
+      debugPrint(
+        '🤖 System prompt acknowledged: ${acknowledgment.substring(0, 50)}...',
+      );
     } catch (e) {
       debugPrint('⚠️ Failed to initialize system prompt: $e');
       // Continue without system prompt rather than failing completely
@@ -236,7 +237,7 @@ enum ModelStatus {
         return 'Loading Gemma model...';
       case ModelStatus.ready:
       case ModelStatus.generating:
-        return 'Gemma ready';
+        return 'Model ready';
       case ModelStatus.error:
         return 'Model error';
     }
