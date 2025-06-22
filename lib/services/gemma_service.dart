@@ -44,7 +44,7 @@ class GemmaService {
       debugPrint('📦 Installing model from assets...');
 
       await modelManager.installModelFromAsset(
-        ModelConstants.gemma3n_e2b_it_int4,
+        ModelConstants.gemma3_1b_it_int4,
       );
 
       _statusController.add(ModelStatus.loading);
