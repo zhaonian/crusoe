@@ -61,7 +61,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           _messages.add(
             ChatMessage(
               text:
-                  "👋 Hello! I'm your offline AI assistant powered by Gemma. How can I help you today?",
+                  "👋 Hello! I'm your enhanced offline AI assistant powered by Gemma. I'm now equipped with improved reasoning and context awareness. How can I help you today?",
               isUser: false,
               timestamp: DateTime.now(),
             ),

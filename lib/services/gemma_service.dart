@@ -19,14 +19,29 @@ class GemmaService {
   String? _modelPath;
   InferenceModel? _inferenceModel;
   InferenceChat? _chatSession; // Maintain a single chat session
+  
+  // System prompt to make the AI smarter as an assistant
+  static const String _defaultSystemPrompt = '''You are a helpful, intelligent, and knowledgeable AI assistant. Your goal is to provide accurate, useful, and engaging responses. Please:
+
+• Be conversational and friendly while remaining professional
+• Provide clear, well-structured answers
+• Ask clarifying questions when the user's request is ambiguous
+• Break down complex topics into understandable explanations
+• Offer practical suggestions and actionable advice
+• Admit when you don't know something rather than guessing
+• Remember our conversation context and refer back to it when relevant
+• Be concise but thorough - aim for helpful detail without being verbose
+• Use examples when they help clarify your explanations
+
+You are running offline on the user's device, so you cannot access real-time information or browse the internet. Focus on providing helpful responses based on your training knowledge.''';
 
   /// Stream controller for model loading status
   final StreamController<ModelStatus> _statusController =
       StreamController<ModelStatus>.broadcast();
   Stream<ModelStatus> get statusStream => _statusController.stream;
 
-  /// Initialize the Gemma model
-  Future<bool> initialize({String? modelPath}) async {
+  /// Initialize the Gemma model with an optional system prompt
+  Future<bool> initialize({String? modelPath, String? systemPrompt}) async {
     if (_isInitialized) return true;
     if (_isLoading) return false;
 
@@ -74,6 +89,10 @@ class GemmaService {
         topK: 40,
       );
 
+      // Initialize with system prompt to make the AI smarter
+      final promptToUse = systemPrompt ?? _defaultSystemPrompt;
+      await _initializeSystemPrompt(promptToUse);
+
       debugPrint('✅ Gemma model loaded successfully');
       _isInitialized = true;
       _isLoading = false;
@@ -86,6 +105,27 @@ class GemmaService {
       _statusController.add(ModelStatus.error);
       debugPrint('❌ Failed to initialize Gemma model: $e');
       return false;
+    }
+  }
+
+  /// Initialize the chat session with a system prompt
+  Future<void> _initializeSystemPrompt(String systemPrompt) async {
+    try {
+      debugPrint('📝 Setting up AI assistant with system prompt...');
+      
+      // Add system prompt as an assistant message to establish context
+      await _chatSession!.addQueryChunk(Message(
+        text: systemPrompt, 
+        isUser: false
+      ));
+      
+      // Generate a brief acknowledgment to "consume" the system prompt
+      final acknowledgment = await _chatSession!.generateChatResponse();
+      debugPrint('🤖 System prompt acknowledged: ${acknowledgment.substring(0, 50)}...');
+      
+    } catch (e) {
+      debugPrint('⚠️ Failed to initialize system prompt: $e');
+      // Continue without system prompt rather than failing completely
     }
   }
 
@@ -130,8 +170,8 @@ class GemmaService {
     }
   }
 
-  /// Create a new chat session
-  Future<void> createNewChatSession() async {
+  /// Create a new chat session with system prompt
+  Future<void> createNewChatSession({String? systemPrompt}) async {
     if (!_isInitialized || _inferenceModel == null) {
       throw Exception('Model not initialized. Call initialize() first.');
     }
@@ -143,6 +183,11 @@ class GemmaService {
         randomSeed: 42,
         topK: 40,
       );
+
+      // Re-initialize with system prompt
+      final promptToUse = systemPrompt ?? _defaultSystemPrompt;
+      await _initializeSystemPrompt(promptToUse);
+
       debugPrint('✅ New chat session created successfully');
     } catch (e) {
       debugPrint('❌ Failed to create new chat session: $e');
