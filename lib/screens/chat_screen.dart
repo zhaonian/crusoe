@@ -302,7 +302,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: GlassmorphismAppBar(
-          centerTitle: false,
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -451,7 +450,12 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: isUser || message.isLoading
+                    ? 12
+                    : 0, // Simple hack: move up to hide bottom padding
+              ),
               decoration: BoxDecoration(
                 color: isUser
                     ? Theme.of(context).primaryColor
