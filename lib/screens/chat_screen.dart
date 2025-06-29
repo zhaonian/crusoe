@@ -277,29 +277,32 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark ? [
-            Colors.blue[900]!,
-            Colors.blue[800]!,
-            Colors.purple[800]!,
-            Colors.pink[800]!,
-          ] : [
-            Colors.blue[100]!,
-            Colors.blue[50]!,
-            Colors.purple[50]!,
-            Colors.pink[50]!,
-          ],
+          colors: isDark
+              ? [
+                  Colors.blue[900]!,
+                  Colors.blue[800]!,
+                  Colors.purple[800]!,
+                  Colors.pink[800]!,
+                ]
+              : [
+                  Colors.blue[100]!,
+                  Colors.blue[50]!,
+                  Colors.purple[50]!,
+                  Colors.pink[50]!,
+                ],
           stops: [0.0, 0.3, 0.7, 1.0],
         ),
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: GlassmorphismAppBar(
+          centerTitle: false,
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -308,16 +311,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Offline AI Chat", 
+                  Text(
+                    "Offline AI",
                     style: TextStyle(
-                      fontSize: 18, 
+                      fontSize: 18,
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
-                    )
+                    ),
                   ),
                   Text(
                     _currentStatus.getMessageWithContext(),
-                    style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8)),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
                   ),
                 ],
               ),
@@ -468,16 +475,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               child: message.isLoading
                   ? _buildLoadingIndicator()
                   : isUser
-                      ? Text(
-                          message.text,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        )
-                      : MarkdownMessage(
-                          content: message.text,
-                        ),
+                  ? Text(
+                      message.text,
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    )
+                  : MarkdownMessage(content: message.text),
             ),
           ),
           if (isUser) ...[
