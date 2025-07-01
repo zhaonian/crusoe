@@ -44,7 +44,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _initializeModel();
-    _addWelcomeMessage();
     _listenToModelStatus();
 
     // Listen to text changes to update send button state
@@ -79,14 +78,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         _isModelLoaded = status.isOperational;
         _isGenerating = status == ModelStatus.generating;
       });
-
-      // Update welcome message when status changes to ready
-      if (status == ModelStatus.ready && _messages.length == 1) {
-        setState(() {
-          _messages.clear();
-        });
-        _addWelcomeMessage();
-      }
     });
   }
 
@@ -302,6 +293,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: GlassmorphismAppBar(
+          centerTitle: false,
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
