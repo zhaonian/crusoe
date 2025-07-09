@@ -8,6 +8,7 @@ class ChatInputArea extends StatelessWidget {
   final VoidCallback? onStopPressed;
   final ValueChanged<String>? onSubmitted;
   final VoidCallback? onTextChanged;
+  final VoidCallback? onLoadingTap; // New callback for when input is tapped while loading
 
   const ChatInputArea({
     super.key,
@@ -18,6 +19,7 @@ class ChatInputArea extends StatelessWidget {
     this.onStopPressed,
     this.onSubmitted,
     this.onTextChanged,
+    this.onLoadingTap,
   });
 
   @override
@@ -98,44 +100,50 @@ class ChatInputArea extends StatelessWidget {
                     minHeight: 20,
                     maxHeight: 80, // Max height for text field
                   ),
-                  child: TextField(
-                    controller: textController,
-                    enabled: isModelLoaded && !isGenerating,
-                    maxLines: null,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.newline,
-                    style: TextStyle(fontSize: 16, height: 1.4),
-                    decoration: InputDecoration(
-                      hintText: isModelLoaded
-                          ? "Message..."
-                          : "LLM Thinking...",
-                      hintStyle: TextStyle(
-                        color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
-                        fontSize: 16,
+                  child: GestureDetector(
+                    onTap: !isModelLoaded ? onLoadingTap : null,
+                    behavior: !isModelLoaded ? HitTestBehavior.opaque : HitTestBehavior.deferToChild,
+                    child: TextField(
+                      controller: textController,
+                      enabled: isModelLoaded && !isGenerating,
+                      maxLines: null,
+                      textCapitalization: TextCapitalization.sentences,
+                      textInputAction: TextInputAction.newline,
+                      style: TextStyle(fontSize: 16, height: 1.4),
+                      decoration: InputDecoration(
+                        hintText: !isModelLoaded
+                            ? "Loading model..."
+                            : isGenerating
+                            ? "Thinking..."
+                            : "Message...",
+                        hintStyle: TextStyle(
+                          color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                          fontSize: 16,
+                        ),
+                        border: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 12,
+                        ),
+                        isDense: true,
                       ),
-                      border: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 12,
-                      ),
-                      isDense: true,
+                      onChanged: (text) {
+                        // Trigger rebuild for send button state
+                        onTextChanged?.call();
+                      },
+                      onSubmitted: (text) {
+                        if (text.trim().isNotEmpty &&
+                            isModelLoaded &&
+                            !isGenerating) {
+                          onSubmitted?.call(text);
+                        }
+                      },
                     ),
-                    onChanged: (text) {
-                      // Trigger rebuild for send button state
-                      onTextChanged?.call();
-                    },
-                    onSubmitted: (text) {
-                      if (text.trim().isNotEmpty &&
-                          isModelLoaded &&
-                          !isGenerating) {
-                        onSubmitted?.call(text);
-                      }
-                    },
                   ),
                 ),
               ),

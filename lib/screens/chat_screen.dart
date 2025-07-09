@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import '../services/gemma_service.dart';
 import '../widgets/chat_input_area.dart';
+import '../widgets/glassmorphism_app_bar.dart';
 import 'model_info_screen.dart';
 import '../widgets/markdown_message.dart';
 
@@ -43,7 +46,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _initializeModel();
-    _addWelcomeMessage();
     _listenToModelStatus();
 
     // Listen to text changes to update send button state
@@ -78,14 +80,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         _isModelLoaded = status.isOperational;
         _isGenerating = status == ModelStatus.generating;
       });
-
-      // Update welcome message when status changes to ready
-      if (status == ModelStatus.ready && _messages.length == 1) {
-        setState(() {
-          _messages.clear();
-        });
-        _addWelcomeMessage();
-      }
     });
   }
 
@@ -104,6 +98,116 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
       ),
+    );
+  }
+
+  void _showLoadingDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final platform = Platform.isAndroid ? "CPU" : "GPU";
+    
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDark ? Color(0xFF2D2D2D) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Lottie Animation
+                Container(
+                  width: 460,
+                  height: 120,
+                  child: Lottie.asset(
+                    'assets/animations/loading_animation.json',
+                    fit: BoxFit.contain,
+                    repeat: true,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 120,
+                        height: 120,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 60,
+                                height: 60,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 4,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Theme.of(context).primaryColor,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                "Loading...",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: isDark ? Colors.grey[300] : Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(height: 20),
+                // Title
+                Text(
+                  "Loading LLM Model...",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 12),
+                // Friendly message
+                Text(
+                  "Your $platform is working hard to load the LLM model!",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isDark ? Colors.grey[300] : Colors.grey[700],
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 16),
+                // Close button
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    "Got it!",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -275,102 +379,158 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Icon(Icons.smart_toy),
-            SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Offline AI Chat", style: TextStyle(fontSize: 18)),
-                Text(
-                  _currentStatus.getMessageWithContext(),
-                  style: TextStyle(fontSize: 12, color: Colors.grey[300]),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  Colors.blue[900]!,
+                  Colors.blue[800]!,
+                  Colors.purple[800]!,
+                  Colors.pink[800]!,
+                ]
+              : [
+                  Colors.blue[100]!,
+                  Colors.blue[50]!,
+                  Colors.purple[50]!,
+                  Colors.pink[50]!,
+                ],
+          stops: [0.0, 0.3, 0.7, 1.0],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: GlassmorphismAppBar(
+          centerTitle: false,
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
                 ),
-              ],
+                alignment: Alignment.center,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.asset(
+                    'assets/icons/app_logo.png',
+                    width: 24,
+                    height: 24,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Offline AI",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    _currentStatus.getMessageWithContext(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh, color: Colors.white),
+              onPressed: _handleRefresh,
+              tooltip: "Clear chat",
+            ),
+            IconButton(
+              icon: Icon(Icons.storage, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ModelInfoScreen()),
+                );
+              },
+              tooltip: "Model info",
+            ),
+            IconButton(
+              icon: Icon(Icons.info_outline, color: Colors.white),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text("About"),
+                    content: Text(
+                      "This chat runs completely offline. "
+                      "Your conversations stay private on your device.",
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text("OK"),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _handleRefresh,
-            tooltip: "Clear chat",
-          ),
-          IconButton(
-            icon: Icon(Icons.storage),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ModelInfoScreen()),
-              );
-            },
-            tooltip: "Model info",
-          ),
-          IconButton(
-            icon: Icon(Icons.info_outline),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text("About"),
-                  content: Text(
-                    "This chat runs completely offline using Google's Gemma model. "
-                    "Your conversations stay private on your device.",
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text("OK"),
+        body: Column(
+          children: [
+            Expanded(
+              child: _messages.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            "Start a conversation!",
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) =>
+                          _buildMessage(_messages[index], index),
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _messages.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          "Start a conversation!",
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) =>
-                        _buildMessage(_messages[index], index),
-                  ),
-          ),
-          ChatInputArea(
-            textController: _textController,
-            isModelLoaded: _isModelLoaded,
-            isGenerating: _isGenerating,
-            onSendPressed: () => _handleSubmitted(_textController.text),
-            onStopPressed: _stopGeneration,
-            onSubmitted: _handleSubmitted,
-            onTextChanged: () => setState(() {}),
-          ),
-        ],
+            ),
+            ChatInputArea(
+              textController: _textController,
+              isModelLoaded: _isModelLoaded,
+              isGenerating: _isGenerating,
+              onSendPressed: () => _handleSubmitted(_textController.text),
+              onStopPressed: _stopGeneration,
+              onSubmitted: _handleSubmitted,
+              onTextChanged: () => setState(() {}),
+              onLoadingTap: _showLoadingDialog,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -401,10 +561,23 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Theme.of(context).primaryColor,
-              child: Icon(Icons.smart_toy, color: Colors.white, size: 16),
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  'assets/icons/app_logo.png',
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
             SizedBox(width: 8),
           ],
@@ -428,7 +601,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: Offset(0, 2),
                   ),
@@ -437,16 +610,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               child: message.isLoading
                   ? _buildLoadingIndicator()
                   : isUser
-                      ? Text(
-                          message.text,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        )
-                      : MarkdownMessage(
-                          content: message.text,
-                        ),
+                  ? Text(
+                      message.text,
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    )
+                  : MarkdownMessage(content: message.text),
             ),
           ),
           if (isUser) ...[
