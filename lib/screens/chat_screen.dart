@@ -103,8 +103,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _launchFeedbackForm() async {
-    final Uri url = Uri.parse('https://docs.google.com/forms/d/e/1FAIpQLScZE3S2vYkNfrCpvxzfAqi1mU4IP50yulpkCDzuE-mki9R5ng/viewform');
-    
+    final Uri url = Uri.parse(
+      'https://docs.google.com/forms/d/e/1FAIpQLScZE3S2vYkNfrCpvxzfAqi1mU4IP50yulpkCDzuE-mki9R5ng/viewform',
+    );
+
     try {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -118,8 +120,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   void _showLoadingDialog() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final platform = Platform.isAndroid ? "CPU" : "GPU";
-    
+    final platform = "GPU";
+
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -173,7 +175,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                 "Loading...",
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: isDark ? Colors.grey[300] : Colors.grey[700],
+                                  color: isDark
+                                      ? Colors.grey[300]
+                                      : Colors.grey[700],
                                 ),
                               ),
                             ],
@@ -479,7 +483,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   case 'model_info':
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => ModelInfoScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => ModelInfoScreen(),
+                      ),
                     );
                     break;
                   case 'feedback':
@@ -614,37 +620,37 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
           child: Row(
             children: [
-                              Container(
-                  width: 80,
-                  height: 40,
-                  child: ColorFiltered(
-                    colorFilter: ColorFilter.mode(
-                      isDarkMode ? Colors.white : Colors.black87,
-                      BlendMode.srcIn,
-                    ),
-                    child: Lottie.asset(
-                      'assets/animations/typing_animation.json',
-                      fit: BoxFit.contain,
-                      repeat: true,
-                      backgroundLoading: false,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Text(
-                          "...",
-                          style: TextStyle(
-                            color: isDarkMode ? Colors.white : Colors.black87,
-                            fontSize: 16,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        );
-                      },
-                    ),
+              Container(
+                width: 80,
+                height: 40,
+                child: ColorFiltered(
+                  colorFilter: ColorFilter.mode(
+                    isDarkMode ? Colors.white : Colors.black87,
+                    BlendMode.srcIn,
+                  ),
+                  child: Lottie.asset(
+                    'assets/animations/typing_animation.json',
+                    fit: BoxFit.contain,
+                    repeat: true,
+                    backgroundLoading: false,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Text(
+                        "...",
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      );
+                    },
                   ),
                 ),
+              ),
             ],
           ),
         );
       }
-      
+
       // LLM message: full width, no container
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
@@ -665,13 +671,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               ),
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: isDarkMode 
-                    ? Colors.white.withOpacity(0.1) 
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.1)
                     : Colors.black.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDarkMode 
-                      ? Colors.white.withOpacity(0.2) 
+                  color: isDarkMode
+                      ? Colors.white.withOpacity(0.2)
                       : Colors.black.withOpacity(0.1),
                   width: 1,
                 ),

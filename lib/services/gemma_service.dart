@@ -66,14 +66,11 @@ You are running offline on the user's device, so you cannot access real-time inf
       _statusController.add(ModelStatus.loading);
       debugPrint('🏗️ Creating inference model...');
 
-      // Create the inference model with platform-optimized backend
-      final preferredBackend = Platform.isAndroid
-          ? PreferredBackend
-                .cpu // Android: Use CPU for stability
-          : PreferredBackend.gpu; // iOS: Use GPU for performance
+      // Create the inference model with GPU backend for optimal performance
+      final preferredBackend = PreferredBackend.gpu; // Use GPU for all platforms
 
       debugPrint(
-        '🔧 Using ${Platform.isAndroid ? "CPU" : "GPU"} backend for ${Platform.isAndroid ? "Android" : "iOS"}',
+        '🔧 Using GPU backend for ${Platform.isAndroid ? "Android" : "iOS"} (optimized for performance)',
       );
 
       _inferenceModel = await gemma.createModel(
