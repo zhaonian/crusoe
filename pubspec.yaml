@@ -34,6 +34,7 @@ dependencies:
   # UI and icons
   cupertino_icons: ^1.0.8
   markdown_widget: ^2.3.2+8  # For rendering markdown in chat messages
+  lottie: ^3.3.1  # For Lottie animations
   
   # AI/ML dependencies  
   flutter_gemma: ^0.9.0   # Flutter plugin for Gemma (compatible with iOS 12+)
@@ -66,6 +67,7 @@ flutter:
   assets:
     - assets/models/
     - assets/icons/
+    - assets/animations/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
