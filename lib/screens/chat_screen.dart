@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/gemma_service.dart';
 import '../widgets/chat_input_area.dart';
 import '../widgets/glassmorphism_app_bar.dart';
@@ -99,6 +100,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  Future<void> _launchFeedbackForm() async {
+    final Uri url = Uri.parse('https://docs.google.com/forms/d/e/1FAIpQLScZE3S2vYkNfrCpvxzfAqi1mU4IP50yulpkCDzuE-mki9R5ng/viewform');
+    
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        _showError('Could not launch feedback form');
+      }
+    } catch (e) {
+      _showError('Error opening feedback form: $e');
+    }
   }
 
   void _showLoadingDialog() {
@@ -457,36 +472,76 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               onPressed: _handleRefresh,
               tooltip: "Clear chat",
             ),
-            IconButton(
-              icon: Icon(Icons.storage, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ModelInfoScreen()),
-                );
-              },
-              tooltip: "Model info",
-            ),
-            IconButton(
-              icon: Icon(Icons.info_outline, color: Colors.white),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text("About"),
-                    content: Text(
-                      "This chat runs completely offline. "
-                      "Your conversations stay private on your device.",
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text("OK"),
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: Colors.white),
+              onSelected: (String value) {
+                switch (value) {
+                  case 'model_info':
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ModelInfoScreen()),
+                    );
+                    break;
+                  case 'feedback':
+                    _launchFeedbackForm();
+                    break;
+                  case 'about':
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text("About"),
+                        content: Text(
+                          "🌐 No WiFi Required!\n\n"
+                          "This AI assistant runs completely offline on your device. "
+                          "No internet connection needed - your conversations stay "
+                          "private and secure on your device.\n\n"
+                          "✓ Works without internet\n"
+                          "✓ Complete privacy\n"
+                          "✓ No data sent to servers",
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text("OK"),
+                          ),
+                        ],
                       ),
+                    );
+                    break;
+                }
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(
+                  value: 'model_info',
+                  child: Row(
+                    children: [
+                      Icon(Icons.storage, size: 20),
+                      SizedBox(width: 12),
+                      Text('Model Info'),
                     ],
                   ),
-                );
-              },
+                ),
+                PopupMenuItem<String>(
+                  value: 'feedback',
+                  child: Row(
+                    children: [
+                      Icon(Icons.feedback, size: 20),
+                      SizedBox(width: 12),
+                      Text('Feedback'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'about',
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 20),
+                      SizedBox(width: 12),
+                      Text('About'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
