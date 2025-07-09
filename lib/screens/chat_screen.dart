@@ -553,6 +553,43 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     if (!isUser) {
+      // Check if this is a loading message
+      if (message.isLoading) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
+          child: Row(
+            children: [
+                              Container(
+                  width: 80,
+                  height: 40,
+                  child: ColorFiltered(
+                    colorFilter: ColorFilter.mode(
+                      isDarkMode ? Colors.white : Colors.black87,
+                      BlendMode.srcIn,
+                    ),
+                    child: Lottie.asset(
+                      'assets/animations/typing_animation.json',
+                      fit: BoxFit.contain,
+                      repeat: true,
+                      backgroundLoading: false,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Text(
+                          "...",
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      }
+      
       // LLM message: full width, no container
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
