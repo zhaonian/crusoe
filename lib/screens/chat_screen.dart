@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/gemma_service.dart';
 import '../widgets/chat_input_area.dart';
 import '../widgets/glassmorphism_app_bar.dart';
@@ -99,6 +100,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  Future<void> _launchFeedbackForm() async {
+    final Uri url = Uri.parse('https://docs.google.com/forms/d/e/1FAIpQLScZE3S2vYkNfrCpvxzfAqi1mU4IP50yulpkCDzuE-mki9R5ng/viewform');
+    
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        _showError('Could not launch feedback form');
+      }
+    } catch (e) {
+      _showError('Error opening feedback form: $e');
+    }
   }
 
   void _showLoadingDialog() {
@@ -388,10 +403,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           end: Alignment.bottomRight,
           colors: isDark
               ? [
-                  Colors.blue[900]!,
-                  Colors.blue[800]!,
-                  Colors.purple[800]!,
-                  Colors.pink[800]!,
+                  Color(0xFF1a1a2e),
+                  Color(0xFF16213e),
+                  Color(0xFF1a1a2e),
+                  Color(0xFF0f0f23),
                 ]
               : [
                   Colors.blue[100]!,
@@ -457,36 +472,76 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               onPressed: _handleRefresh,
               tooltip: "Clear chat",
             ),
-            IconButton(
-              icon: Icon(Icons.storage, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ModelInfoScreen()),
-                );
-              },
-              tooltip: "Model info",
-            ),
-            IconButton(
-              icon: Icon(Icons.info_outline, color: Colors.white),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text("About"),
-                    content: Text(
-                      "This chat runs completely offline. "
-                      "Your conversations stay private on your device.",
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text("OK"),
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: Colors.white),
+              onSelected: (String value) {
+                switch (value) {
+                  case 'model_info':
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ModelInfoScreen()),
+                    );
+                    break;
+                  case 'feedback':
+                    _launchFeedbackForm();
+                    break;
+                  case 'about':
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text("About"),
+                        content: Text(
+                          "🌐 No WiFi Required!\n\n"
+                          "This AI assistant runs completely offline on your device. "
+                          "No internet connection needed - your conversations stay "
+                          "private and secure on your device.\n\n"
+                          "✓ Works without internet\n"
+                          "✓ Complete privacy\n"
+                          "✓ No data sent to servers",
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text("OK"),
+                          ),
+                        ],
                       ),
+                    );
+                    break;
+                }
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(
+                  value: 'model_info',
+                  child: Row(
+                    children: [
+                      Icon(Icons.storage, size: 20),
+                      SizedBox(width: 12),
+                      Text('Model Info'),
                     ],
                   ),
-                );
-              },
+                ),
+                PopupMenuItem<String>(
+                  value: 'feedback',
+                  child: Row(
+                    children: [
+                      Icon(Icons.feedback, size: 20),
+                      SizedBox(width: 12),
+                      Text('Feedback'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'about',
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 20),
+                      SizedBox(width: 12),
+                      Text('About'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -552,79 +607,85 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final isUser = message.isUser;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
-      child: Row(
-        mainAxisAlignment: isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isUser) ...[
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.center,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  'assets/icons/app_logo.png',
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.cover,
+    if (!isUser) {
+      // Check if this is a loading message
+      if (message.isLoading) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
+          child: Row(
+            children: [
+                              Container(
+                  width: 80,
+                  height: 40,
+                  child: ColorFiltered(
+                    colorFilter: ColorFilter.mode(
+                      isDarkMode ? Colors.white : Colors.black87,
+                      BlendMode.srcIn,
+                    ),
+                    child: Lottie.asset(
+                      'assets/animations/typing_animation.json',
+                      fit: BoxFit.contain,
+                      repeat: true,
+                      backgroundLoading: false,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Text(
+                          "...",
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            SizedBox(width: 8),
-          ],
+            ],
+          ),
+        );
+      }
+      
+      // LLM message: full width, no container
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
+        child: MarkdownMessage(content: message.text),
+      );
+    }
+
+    // User message: minimal with subtle distinction
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
           Flexible(
             child: Container(
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: isUser
-                    ? Theme.of(context).primaryColor
-                    : Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(18).copyWith(
-                  bottomRight: isUser
-                      ? Radius.circular(4)
-                      : Radius.circular(18),
-                  bottomLeft: !isUser
-                      ? Radius.circular(4)
-                      : Radius.circular(18),
+                color: isDarkMode 
+                    ? Colors.white.withOpacity(0.1) 
+                    : Colors.black.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDarkMode 
+                      ? Colors.white.withOpacity(0.2) 
+                      : Colors.black.withOpacity(0.1),
+                  width: 1,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
               ),
-              child: message.isLoading
-                  ? _buildLoadingIndicator()
-                  : isUser
-                  ? Text(
-                      message.text,
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    )
-                  : MarkdownMessage(content: message.text),
+              child: Text(
+                message.text,
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ),
-          if (isUser) ...[
-            SizedBox(width: 8),
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.grey[300],
-              child: Icon(Icons.person, color: Colors.grey[600], size: 16),
-            ),
-          ],
         ],
       ),
     );
