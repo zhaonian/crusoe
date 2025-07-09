@@ -129,7 +129,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               children: [
                 // Lottie Animation
                 Container(
-                  width: 220,
+                  width: 460,
                   height: 120,
                   child: Lottie.asset(
                     'assets/animations/loading_animation.json',
@@ -171,7 +171,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 SizedBox(height: 20),
                 // Title
                 Text(
-                  "Loading AI Model...",
+                  "Loading LLM Model...",
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -182,7 +182,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 SizedBox(height: 12),
                 // Friendly message
                 Text(
-                  "Your $platform is working hard to load the LLM model! This might take a moment on first launch.",
+                  "Your $platform is working hard to load the LLM model!",
                   style: TextStyle(
                     fontSize: 16,
                     color: isDark ? Colors.grey[300] : Colors.grey[700],
