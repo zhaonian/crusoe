@@ -552,35 +552,21 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final isUser = message.isUser;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
+    if (!isUser) {
+      // LLM message: full width, no container
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
+        child: MarkdownMessage(content: message.text),
+      );
+    }
+
+    // User message: right-aligned, no avatar
     return Container(
       margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
       child: Row(
-        mainAxisAlignment: isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isUser) ...[
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.center,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  'assets/icons/app_logo.png',
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            SizedBox(width: 8),
-          ],
           Flexible(
             child: Container(
               constraints: BoxConstraints(
@@ -588,43 +574,25 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               ),
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: isUser
-                    ? Theme.of(context).primaryColor
-                    : Theme.of(context).cardColor,
+                color: Theme.of(context).primaryColor,
                 borderRadius: BorderRadius.circular(18).copyWith(
-                  bottomRight: isUser
-                      ? Radius.circular(4)
-                      : Radius.circular(18),
-                  bottomLeft: !isUser
-                      ? Radius.circular(4)
-                      : Radius.circular(18),
+                  bottomRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(4),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: Colors.black.withOpacity(0.1),
                     blurRadius: 4,
                     offset: Offset(0, 2),
                   ),
                 ],
               ),
-              child: message.isLoading
-                  ? _buildLoadingIndicator()
-                  : isUser
-                  ? Text(
-                      message.text,
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    )
-                  : MarkdownMessage(content: message.text),
+              child: Text(
+                message.text,
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
             ),
           ),
-          if (isUser) ...[
-            SizedBox(width: 8),
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.grey[300],
-              child: Icon(Icons.person, color: Colors.grey[600], size: 16),
-            ),
-          ],
         ],
       ),
     );
