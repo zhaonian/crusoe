@@ -8,9 +8,6 @@ class MarkdownMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Transform.translate(
-      offset: Offset(0, 12), // Simple hack: move up to hide bottom padding
-      child: MarkdownWidget(data: content, shrinkWrap: true),
-    );
+    return SizedBox(child: MarkdownWidget(data: content, shrinkWrap: true));
   }
 }

@@ -112,20 +112,65 @@ You are running offline on the user's device, so you cannot access real-time inf
   /// Initialize the chat session with a system prompt
   Future<void> _initializeSystemPrompt(String systemPrompt) async {
     try {
+      debugPrint(
+        '📝 ==================== SYSTEM PROMPT INIT ====================',
+      );
       debugPrint('📝 Setting up AI assistant with system prompt...');
+      debugPrint('📏 System prompt length: ${systemPrompt.length} characters');
+      debugPrint(
+        '📏 System prompt lines: ${systemPrompt.split('\n').length} lines',
+      );
+      debugPrint(
+        '📝 System prompt preview: "${systemPrompt.substring(0, systemPrompt.length.clamp(0, 100))}${systemPrompt.length > 100 ? "..." : ""}"',
+      );
+
+      final stopwatch = Stopwatch()..start();
 
       // Add system prompt as an assistant message to establish context
+      debugPrint('➕ Adding system prompt as assistant message...');
       await _chatSession!.addQueryChunk(
         Message(text: systemPrompt, isUser: false),
       );
+      debugPrint('✅ System prompt message added successfully');
 
       // Generate a brief acknowledgment to "consume" the system prompt
+      debugPrint('🤖 Generating system prompt acknowledgment...');
+      final acknowledgmentStartTime = stopwatch.elapsedMilliseconds;
+
       final acknowledgment = await _chatSession!.generateChatResponse();
+
+      final acknowledgmentEndTime = stopwatch.elapsedMilliseconds;
+      final acknowledgmentDuration =
+          acknowledgmentEndTime - acknowledgmentStartTime;
+
+      debugPrint('📤 System prompt acknowledgment: "$acknowledgment"');
       debugPrint(
-        '🤖 System prompt acknowledged: ${acknowledgment.substring(0, 50)}...',
+        '📏 Acknowledgment length: ${acknowledgment.length} characters',
       );
-    } catch (e) {
+      debugPrint(
+        '⏱️ Acknowledgment generation time: ${acknowledgmentDuration}ms',
+      );
+
+      stopwatch.stop();
+      debugPrint(
+        '⏱️ Total system prompt init time: ${stopwatch.elapsedMilliseconds}ms',
+      );
+      debugPrint(
+        '✅ ==================== SYSTEM PROMPT COMPLETE ====================',
+      );
+    } catch (e, stackTrace) {
+      debugPrint(
+        '⚠️ ==================== SYSTEM PROMPT ERROR ====================',
+      );
       debugPrint('⚠️ Failed to initialize system prompt: $e');
+      debugPrint('📚 Stack trace: $stackTrace');
+      debugPrint('📏 System prompt length: ${systemPrompt.length} characters');
+      debugPrint(
+        '💬 Chat session state: ${_chatSession != null ? "active" : "null"}',
+      );
+      debugPrint(
+        '⚠️ ==================== SYSTEM PROMPT ERROR END ====================',
+      );
       // Continue without system prompt rather than failing completely
     }
   }
@@ -136,36 +181,108 @@ You are running offline on the user's device, so you cannot access real-time inf
       throw Exception('Model not initialized. Call initialize() first.');
     }
 
+    // Debug: Log full request details
     debugPrint(
-      '🔍 generateResponse called with prompt: "${prompt.substring(0, prompt.length.clamp(0, 50))}${prompt.length > 50 ? "..." : ""}"',
+      '🔍 ==================== LLM REQUEST DEBUG ====================',
     );
+    debugPrint('📥 Input prompt: "$prompt"');
+    debugPrint('📏 Input length: ${prompt.length} characters');
+    debugPrint('📏 Input words: ${prompt.split(' ').length} words');
+    debugPrint('🧠 Model initialized: $_isInitialized');
+    debugPrint('💬 Chat session active: ${_chatSession != null}');
+    debugPrint('🔧 Platform: ${Platform.isAndroid ? "Android" : "iOS"}');
+    debugPrint('⏱️ Request timestamp: ${DateTime.now().toIso8601String()}');
+
+    final stopwatch = Stopwatch()..start();
 
     try {
       _statusController.add(ModelStatus.generating);
+      debugPrint('🔄 Status changed to: generating');
 
       // Add the user's query using the existing chat session
+      debugPrint('✏️ Adding query chunk to chat session...');
       await _chatSession!.addQueryChunk(Message(text: prompt, isUser: true));
+      debugPrint('✅ Query chunk added successfully');
 
-      debugPrint('✏️ Query chunk added, generating response...');
+      debugPrint('🤖 Generating response...');
+      final generationStartTime = stopwatch.elapsedMilliseconds;
 
       // Generate the response using the existing chat session
       final response = await _chatSession!.generateChatResponse();
 
+      final generationEndTime = stopwatch.elapsedMilliseconds;
+      final generationDuration = generationEndTime - generationStartTime;
+
+      // Debug: Log full response details
       debugPrint(
-        '🤖 Response generated: "${response.substring(0, response.length.clamp(0, 100))}${response.length > 100 ? "..." : ""}"',
+        '🎯 ==================== LLM RESPONSE DEBUG ====================',
       );
+      debugPrint('📤 Full response: "$response"');
       debugPrint('📏 Response length: ${response.length} characters');
+      debugPrint('📏 Response words: ${response.split(' ').length} words');
+      debugPrint('📏 Response lines: ${response.split('\n').length} lines');
+      debugPrint('⏱️ Generation time: ${generationDuration}ms');
+      debugPrint(
+        '⚡ Speed: ${response.length / (generationDuration / 1000)} chars/sec',
+      );
+      debugPrint(
+        '🔤 First 200 chars: "${response.substring(0, response.length.clamp(0, 200))}${response.length > 200 ? "..." : ""}"',
+      );
+      debugPrint(
+        '🔤 Last 200 chars: "${response.length > 200 ? "..." + response.substring(response.length - 200) : response}"',
+      );
+
+      // Check for common response patterns
+      if (response.isEmpty) {
+        debugPrint('⚠️ WARNING: Empty response generated');
+      }
+      if (response.trim().isEmpty) {
+        debugPrint('⚠️ WARNING: Response is only whitespace');
+      }
+      if (response.contains('I don\'t know') ||
+          response.contains('I cannot') ||
+          response.contains('I\'m not sure')) {
+        debugPrint('ℹ️ INFO: Response contains uncertainty markers');
+      }
+      if (response.length > 2000) {
+        debugPrint('ℹ️ INFO: Long response generated (>2000 chars)');
+      }
 
       _statusController.add(ModelStatus.ready);
+      debugPrint('🔄 Status changed to: ready');
 
       final trimmedResponse = response.trim();
       debugPrint(
         '📋 Final trimmed response length: ${trimmedResponse.length} characters',
       );
 
+      stopwatch.stop();
+      debugPrint(
+        '⏱️ Total processing time: ${stopwatch.elapsedMilliseconds}ms',
+      );
+      debugPrint(
+        '✅ ==================== LLM RESPONSE COMPLETE ====================',
+      );
+
       return trimmedResponse;
-    } catch (e) {
-      debugPrint('❌ Generation error: $e');
+    } catch (e, stackTrace) {
+      stopwatch.stop();
+      debugPrint('❌ ==================== LLM ERROR DEBUG ====================');
+      debugPrint('💥 Generation error: $e');
+      debugPrint('📚 Stack trace: $stackTrace');
+      debugPrint('⏱️ Time until error: ${stopwatch.elapsedMilliseconds}ms');
+      debugPrint(
+        '🔧 Model state - initialized: $_isInitialized, loading: $_isLoading',
+      );
+      debugPrint(
+        '💬 Chat session state: ${_chatSession != null ? "active" : "null"}',
+      );
+      debugPrint('📱 Platform: ${Platform.isAndroid ? "Android" : "iOS"}');
+      debugPrint(
+        '🧠 Available memory: ${Platform.isAndroid ? "Android memory info not available" : "iOS memory info not available"}',
+      );
+      debugPrint('❌ ==================== LLM ERROR END ====================');
+
       _statusController.add(ModelStatus.error);
       throw Exception('Failed to generate response: $e');
     }
@@ -178,20 +295,59 @@ You are running offline on the user's device, so you cannot access real-time inf
     }
 
     try {
+      debugPrint(
+        '🔄 ==================== NEW CHAT SESSION ====================',
+      );
       debugPrint('🔄 Creating new chat session...');
+      debugPrint('🧠 Model initialized: $_isInitialized');
+      debugPrint(
+        '🤖 Inference model: ${_inferenceModel != null ? "available" : "null"}',
+      );
+      debugPrint(
+        '💬 Previous session: ${_chatSession != null ? "exists" : "null"}',
+      );
+
+      final stopwatch = Stopwatch()..start();
+
       _chatSession = await _inferenceModel!.createChat(
         temperature: 0.8,
         randomSeed: 42,
         topK: 40,
       );
 
+      debugPrint('✅ New chat session created successfully');
+      debugPrint('⚙️ Session config: temp=0.8, seed=42, topK=40');
+
       // Re-initialize with system prompt
       final promptToUse = systemPrompt ?? _defaultSystemPrompt;
+      debugPrint(
+        '📝 Using ${systemPrompt != null ? "custom" : "default"} system prompt',
+      );
+
       await _initializeSystemPrompt(promptToUse);
 
-      debugPrint('✅ New chat session created successfully');
-    } catch (e) {
+      stopwatch.stop();
+      debugPrint(
+        '⏱️ Total chat session creation time: ${stopwatch.elapsedMilliseconds}ms',
+      );
+      debugPrint(
+        '✅ ==================== NEW CHAT SESSION COMPLETE ====================',
+      );
+    } catch (e, stackTrace) {
+      debugPrint(
+        '❌ ==================== CHAT SESSION ERROR ====================',
+      );
       debugPrint('❌ Failed to create new chat session: $e');
+      debugPrint('📚 Stack trace: $stackTrace');
+      debugPrint(
+        '🧠 Model state: initialized=$_isInitialized, loading=$_isLoading',
+      );
+      debugPrint(
+        '🤖 Inference model: ${_inferenceModel != null ? "available" : "null"}',
+      );
+      debugPrint(
+        '❌ ==================== CHAT SESSION ERROR END ====================',
+      );
       throw Exception('Failed to create new chat session: $e');
     }
   }
@@ -234,7 +390,7 @@ enum ModelStatus {
       case ModelStatus.downloading:
         return 'Installing model from assets...';
       case ModelStatus.loading:
-        return 'Loading Gemma model...';
+        return 'Loading model...';
       case ModelStatus.ready:
       case ModelStatus.generating:
         return 'Model ready';
