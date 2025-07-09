@@ -363,7 +363,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   builder: (context) => AlertDialog(
                     title: Text("About"),
                     content: Text(
-                      "This chat runs completely offline using Google's Gemma model. "
+                      "This chat runs completely offline. "
                       "Your conversations stay private on your device.",
                     ),
                     actions: [
