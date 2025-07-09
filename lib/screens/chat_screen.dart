@@ -388,10 +388,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           end: Alignment.bottomRight,
           colors: isDark
               ? [
-                  Colors.blue[900]!,
-                  Colors.blue[800]!,
-                  Colors.purple[800]!,
-                  Colors.pink[800]!,
+                  Color(0xFF1a1a2e),
+                  Color(0xFF16213e),
+                  Color(0xFF1a1a2e),
+                  Color(0xFF0f0f23),
                 ]
               : [
                   Colors.blue[100]!,
