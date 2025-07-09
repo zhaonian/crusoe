@@ -296,6 +296,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           centerTitle: false,
           title: Row(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: 24,
@@ -303,6 +304,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(4),
                 ),
+                alignment: Alignment.center,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: Image.asset(
@@ -316,6 +318,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     "Offline AI",
