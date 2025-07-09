@@ -60,7 +60,7 @@ class ModelInfoScreen extends StatelessWidget {
                       _buildInfoRow(
                         context,
                         'Backend',
-                        'GPU (iOS) / CPU (Android)',
+                        'GPU (may fall back to CPU)',
                       ),
                       _buildInfoRow(
                         context,

@@ -108,12 +108,38 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
 
     try {
+      debugPrint('🔗 Attempting to launch feedback form: ${url.toString()}');
+      
       if (await canLaunchUrl(url)) {
+        debugPrint('✅ URL can be launched, opening in external browser');
         await launchUrl(url, mode: LaunchMode.externalApplication);
+        debugPrint('✅ Feedback form launched successfully');
       } else {
-        _showError('Could not launch feedback form');
+        debugPrint('❌ canLaunchUrl returned false for: ${url.toString()}');
+        
+        // Try a fallback approach with different launch modes
+        try {
+          debugPrint('🔄 Trying fallback launch methods...');
+          await launchUrl(url, mode: LaunchMode.platformDefault);
+          debugPrint('✅ Fallback launch successful');
+        } catch (fallbackError) {
+          debugPrint('❌ Fallback launch failed: $fallbackError');
+          
+          // Final fallback - try a simple URL test
+          final testUrl = Uri.parse('https://google.com');
+          debugPrint('🧪 Testing with simple URL: ${testUrl.toString()}');
+          
+          if (await canLaunchUrl(testUrl)) {
+            debugPrint('✅ Simple URL test passed - issue is with the original URL');
+            _showError('Could not launch the feedback form. The URL might not be accessible.');
+          } else {
+            debugPrint('❌ Simple URL test failed - url_launcher not working');
+            _showError('Could not launch feedback form. Please check if you have a web browser installed.\n\nTroubleshooting:\n1. Restart the app\n2. Check if you have Chrome or Safari installed\n3. Try running: flutter clean && flutter pub get && flutter run');
+          }
+        }
       }
     } catch (e) {
+      debugPrint('❌ Exception launching feedback form: $e');
       _showError('Error opening feedback form: $e');
     }
   }
