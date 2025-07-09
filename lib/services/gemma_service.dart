@@ -381,7 +381,7 @@ enum ModelStatus {
   generating,
   error;
 
-  bool get isOperational => this == ready;
+  bool get isOperational => this == ready || this == generating;
 
   String getMessageWithContext() {
     switch (this) {

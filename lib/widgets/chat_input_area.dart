@@ -109,8 +109,8 @@ class ChatInputArea extends StatelessWidget {
                       hintText: !isModelLoaded
                           ? "Loading model..."
                           : isGenerating
-                              ? "LLM thinking..."
-                              : "Message...",
+                          ? "Thinking..."
+                          : "Message...",
                       hintStyle: TextStyle(
                         color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
                         fontSize: 16,
