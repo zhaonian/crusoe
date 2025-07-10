@@ -78,4 +78,28 @@
 -keepclassmembers enum * {
     public static **[] values();
     public static ** valueOf(java.lang.String);
-} 
+}
+
+# Keep javax.lang.model classes (for annotation processing)
+-keep class javax.lang.model.** { *; }
+-keep class javax.tools.** { *; }
+-dontwarn javax.lang.model.**
+-dontwarn javax.tools.**
+
+# Keep MediaPipe proto classes
+-keep class com.google.mediapipe.proto.** { *; }
+
+# Keep specific problematic classes mentioned in R8 error
+-keep class com.google.mediapipe.framework.GraphProfiler { *; }
+-keep class com.google.mediapipe.framework.Graph { *; }
+-keep class com.google.auto.value.processor.** { *; }
+-keep class com.google.auto.value.extension.** { *; }
+-keep class autovalue.shaded.com.google$.** { *; }
+-keep class autovalue.shaded.com.squareup.** { *; }
+
+# Additional dontwarn rules for problematic classes
+-dontwarn com.google.mediapipe.proto.**
+-dontwarn com.google.auto.value.processor.**
+-dontwarn com.google.auto.value.extension.**
+-dontwarn autovalue.shaded.com.google$.**
+-dontwarn autovalue.shaded.com.squareup.**

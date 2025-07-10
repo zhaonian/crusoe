@@ -109,14 +109,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     try {
       debugPrint('🔗 Attempting to launch feedback form: ${url.toString()}');
-      
+
       if (await canLaunchUrl(url)) {
         debugPrint('✅ URL can be launched, opening in external browser');
         await launchUrl(url, mode: LaunchMode.externalApplication);
         debugPrint('✅ Feedback form launched successfully');
       } else {
         debugPrint('❌ canLaunchUrl returned false for: ${url.toString()}');
-        
+
         // Try a fallback approach with different launch modes
         try {
           debugPrint('🔄 Trying fallback launch methods...');
@@ -124,17 +124,23 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           debugPrint('✅ Fallback launch successful');
         } catch (fallbackError) {
           debugPrint('❌ Fallback launch failed: $fallbackError');
-          
+
           // Final fallback - try a simple URL test
           final testUrl = Uri.parse('https://google.com');
           debugPrint('🧪 Testing with simple URL: ${testUrl.toString()}');
-          
+
           if (await canLaunchUrl(testUrl)) {
-            debugPrint('✅ Simple URL test passed - issue is with the original URL');
-            _showError('Could not launch the feedback form. The URL might not be accessible.');
+            debugPrint(
+              '✅ Simple URL test passed - issue is with the original URL',
+            );
+            _showError(
+              'Could not launch the feedback form. The URL might not be accessible.',
+            );
           } else {
             debugPrint('❌ Simple URL test failed - url_launcher not working');
-            _showError('Could not launch feedback form. Please check if you have a web browser installed.\n\nTroubleshooting:\n1. Restart the app\n2. Check if you have Chrome or Safari installed\n3. Try running: flutter clean && flutter pub get && flutter run');
+            _showError(
+              'Could not launch feedback form. Please check if you have a web browser installed.\n\nTroubleshooting:\n1. Restart the app\n2. Check if you have Chrome or Safari installed\n3. Try running: flutter clean && flutter pub get && flutter run',
+            );
           }
         }
       }
@@ -523,7 +529,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       builder: (context) => AlertDialog(
                         title: Text("About"),
                         content: Text(
-                          "🌐 No WiFi Required!\n\n"
+                          "🌐 No network Required!\n\n"
                           "This AI assistant runs completely offline on your device. "
                           "No internet connection needed - your conversations stay "
                           "private and secure on your device.\n\n"
