@@ -2,9 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
-import 'package:flutter_gemma/core/model.dart';
-import 'package:flutter_gemma/core/chat.dart';
-import 'package:flutter_gemma/pigeon.g.dart';
 import '../constants/model_constants.dart';
 
 /// Service class for handling Gemma model operations
@@ -52,16 +49,13 @@ You are running offline on the user's device, so you cannot access real-time inf
     try {
       debugPrint('🤖 Loading Gemma model...');
 
-      final gemma = FlutterGemmaPlugin.instance;
-      final modelManager = gemma.modelManager;
-
-      // Install model from assets
+      // Install model from assets using the modern API (sets it as active automatically)
       _statusController.add(ModelStatus.downloading);
       debugPrint('📦 Installing model from assets...');
 
-      await modelManager.installModelFromAsset(
-        ModelConstants.gemma3_1b_it_int4,
-      );
+      await FlutterGemma.installModel(modelType: ModelType.gemmaIt)
+          .fromAsset(ModelConstants.gemma3_1b_it_int4)
+          .install();
 
       _statusController.add(ModelStatus.loading);
       debugPrint('🏗️ Creating inference model...');
@@ -73,10 +67,9 @@ You are running offline on the user's device, so you cannot access real-time inf
         '🔧 Using GPU backend for ${Platform.isAndroid ? "Android" : "iOS"} (optimized for performance)',
       );
 
-      _inferenceModel = await gemma.createModel(
-        modelType: ModelType.gemmaIt,
-        preferredBackend: preferredBackend,
+      _inferenceModel = await FlutterGemma.getActiveModel(
         maxTokens: 1024,
+        preferredBackend: preferredBackend,
       );
 
       // Create a single chat session that will be reused
@@ -134,7 +127,8 @@ You are running offline on the user's device, so you cannot access real-time inf
       debugPrint('🤖 Generating system prompt acknowledgment...');
       final acknowledgmentStartTime = stopwatch.elapsedMilliseconds;
 
-      final acknowledgment = await _chatSession!.generateChatResponse();
+      final acknowledgmentResponse = await _chatSession!.generateChatResponse();
+      final acknowledgment = (acknowledgmentResponse as TextResponse).token;
 
       final acknowledgmentEndTime = stopwatch.elapsedMilliseconds;
       final acknowledgmentDuration =
@@ -174,114 +168,50 @@ You are running offline on the user's device, so you cannot access real-time inf
 
   /// Generate a response from the model
   Future<String> generateResponse(String prompt) async {
+    final stream = generateResponseStream(prompt);
+    final buffer = StringBuffer();
+    await for (final token in stream) {
+      buffer.write(token);
+    }
+    return buffer.toString();
+  }
+
+  /// Generate a streaming response from the model
+  Stream<String> generateResponseStream(String prompt) async* {
     if (!_isInitialized || _chatSession == null) {
       throw Exception('Model not initialized. Call initialize() first.');
     }
 
     // Debug: Log full request details
     debugPrint(
-      '🔍 ==================== LLM REQUEST DEBUG ====================',
+      '🔍 ==================== LLM STREAM REQUEST DEBUG ====================',
     );
     debugPrint('📥 Input prompt: "$prompt"');
-    debugPrint('📏 Input length: ${prompt.length} characters');
-    debugPrint('📏 Input words: ${prompt.split(' ').length} words');
     debugPrint('🧠 Model initialized: $_isInitialized');
     debugPrint('💬 Chat session active: ${_chatSession != null}');
-    debugPrint('🔧 Platform: ${Platform.isAndroid ? "Android" : "iOS"}');
-    debugPrint('⏱️ Request timestamp: ${DateTime.now().toIso8601String()}');
-
-    final stopwatch = Stopwatch()..start();
 
     try {
       _statusController.add(ModelStatus.generating);
-      debugPrint('🔄 Status changed to: generating');
 
       // Add the user's query using the existing chat session
-      debugPrint('✏️ Adding query chunk to chat session...');
       await _chatSession!.addQueryChunk(Message(text: prompt, isUser: true));
-      debugPrint('✅ Query chunk added successfully');
 
-      debugPrint('🤖 Generating response...');
-      final generationStartTime = stopwatch.elapsedMilliseconds;
+      // Generate the streaming response
+      final responseStream = _chatSession!.generateChatResponseAsync();
 
-      // Generate the response using the existing chat session
-      final response = await _chatSession!.generateChatResponse();
-
-      final generationEndTime = stopwatch.elapsedMilliseconds;
-      final generationDuration = generationEndTime - generationStartTime;
-
-      // Debug: Log full response details
-      debugPrint(
-        '🎯 ==================== LLM RESPONSE DEBUG ====================',
-      );
-      debugPrint('📤 Full response: "$response"');
-      debugPrint('📏 Response length: ${response.length} characters');
-      debugPrint('📏 Response words: ${response.split(' ').length} words');
-      debugPrint('📏 Response lines: ${response.split('\n').length} lines');
-      debugPrint('⏱️ Generation time: ${generationDuration}ms');
-      debugPrint(
-        '⚡ Speed: ${response.length / (generationDuration / 1000)} chars/sec',
-      );
-      debugPrint(
-        '🔤 First 200 chars: "${response.substring(0, response.length.clamp(0, 200))}${response.length > 200 ? "..." : ""}"',
-      );
-      debugPrint(
-        '🔤 Last 200 chars: "${response.length > 200 ? "..." + response.substring(response.length - 200) : response}"',
-      );
-
-      // Check for common response patterns
-      if (response.isEmpty) {
-        debugPrint('⚠️ WARNING: Empty response generated');
-      }
-      if (response.trim().isEmpty) {
-        debugPrint('⚠️ WARNING: Response is only whitespace');
-      }
-      if (response.contains('I don\'t know') ||
-          response.contains('I cannot') ||
-          response.contains('I\'m not sure')) {
-        debugPrint('ℹ️ INFO: Response contains uncertainty markers');
-      }
-      if (response.length > 2000) {
-        debugPrint('ℹ️ INFO: Long response generated (>2000 chars)');
+      await for (final modelResponse in responseStream) {
+        if (modelResponse is TextResponse) {
+          yield modelResponse.token;
+        }
       }
 
       _statusController.add(ModelStatus.ready);
-      debugPrint('🔄 Status changed to: ready');
-
-      final trimmedResponse = response.trim();
-      debugPrint(
-        '📋 Final trimmed response length: ${trimmedResponse.length} characters',
-      );
-
-      stopwatch.stop();
-      debugPrint(
-        '⏱️ Total processing time: ${stopwatch.elapsedMilliseconds}ms',
-      );
-      debugPrint(
-        '✅ ==================== LLM RESPONSE COMPLETE ====================',
-      );
-
-      return trimmedResponse;
     } catch (e, stackTrace) {
-      stopwatch.stop();
-      debugPrint('❌ ==================== LLM ERROR DEBUG ====================');
+      debugPrint('❌ ==================== LLM STREAM ERROR ====================');
       debugPrint('💥 Generation error: $e');
       debugPrint('📚 Stack trace: $stackTrace');
-      debugPrint('⏱️ Time until error: ${stopwatch.elapsedMilliseconds}ms');
-      debugPrint(
-        '🔧 Model state - initialized: $_isInitialized, loading: $_isLoading',
-      );
-      debugPrint(
-        '💬 Chat session state: ${_chatSession != null ? "active" : "null"}',
-      );
-      debugPrint('📱 Platform: ${Platform.isAndroid ? "Android" : "iOS"}');
-      debugPrint(
-        '🧠 Available memory: ${Platform.isAndroid ? "Android memory info not available" : "iOS memory info not available"}',
-      );
-      debugPrint('❌ ==================== LLM ERROR END ====================');
-
       _statusController.add(ModelStatus.error);
-      throw Exception('Failed to generate response: $e');
+      throw Exception('Failed to generate streaming response: $e');
     }
   }
 

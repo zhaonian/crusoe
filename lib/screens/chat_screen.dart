@@ -10,10 +10,10 @@ import 'model_info_screen.dart';
 import '../widgets/markdown_message.dart';
 
 class ChatMessage {
-  final String text;
+  String text;
   final bool isUser;
   final DateTime timestamp;
-  final bool isLoading;
+  bool isLoading;
 
   ChatMessage({
     required this.text,
@@ -330,52 +330,50 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _generationCancellation = Completer<void>();
 
     try {
-      debugPrint('🔄 Calling gemmaService.generateResponse...');
+      debugPrint('🔄 Starting streaming response from gemmaService...');
 
-      // Race between the generation and cancellation
-      final result = await Future.any([
-        _gemmaService
-            .generateResponse(prompt)
-            .then((response) => {'type': 'response', 'data': response}),
-        _generationCancellation!.future.then((_) => {'type': 'cancelled'}),
-      ]);
-
-      // Check if generation was cancelled
-      if (result['type'] == 'cancelled') {
-        debugPrint('🛑 Generation was cancelled');
-        return; // Exit early, UI already updated by _stopGeneration
-      }
-
-      final response = result['data'] as String;
-      debugPrint(
-        '✅ Received response from service: "${response.substring(0, response.length.clamp(0, 100))}${response.length > 100 ? "..." : ""}"',
+      // Add a placeholder message for the AI response
+      final responseMessage = ChatMessage(
+        text: "",
+        isUser: false,
+        timestamp: DateTime.now(),
       );
-      debugPrint('📏 Response length in UI: ${response.length} characters');
 
-      // Check once more if cancelled (in case cancellation happened during processing)
-      if (_generationCancellation!.isCompleted) {
-        debugPrint('🛑 Generation was cancelled during processing');
-        return;
+      bool isFirstToken = true;
+
+      // Listen to the stream and update the message
+      final stream = _gemmaService.generateResponseStream(prompt);
+      
+      await for (final token in stream) {
+        // Check if generation was cancelled
+        if (_generationCancellation!.isCompleted) {
+          debugPrint('🛑 Generation was cancelled during streaming');
+          break;
+        }
+
+        if (isFirstToken) {
+          setState(() {
+            // Remove loading message
+            if (_messages.isNotEmpty && _messages.last.isLoading) {
+              _messages.removeLast();
+            }
+            // Add the actual response message
+            _messages.add(responseMessage);
+            isFirstToken = false;
+          });
+        }
+
+        setState(() {
+          responseMessage.text += token;
+        });
+        
+        _scrollToBottom();
       }
 
+      debugPrint('✅ Streaming complete');
       setState(() {
-        debugPrint('🗑️ Removing loading message...');
-        // Remove loading message
-        if (_messages.isNotEmpty && _messages.last.isLoading) {
-          _messages.removeLast();
-        }
-        debugPrint('➕ Adding response message to UI...');
-        // Add actual response
-        _messages.add(
-          ChatMessage(text: response, isUser: false, timestamp: DateTime.now()),
-        );
-        debugPrint('💬 Total messages now: ${_messages.length}');
-        // Ensure generating state is reset
         _isGenerating = false;
       });
-
-      _scrollToBottom();
-      debugPrint('✅ UI update complete');
     } catch (e) {
       debugPrint('❌ Error in _generateResponse: $e');
 
